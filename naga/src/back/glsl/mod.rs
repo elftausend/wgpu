@@ -59,6 +59,9 @@ use std::{
 };
 use thiserror::Error;
 
+#[cfg(test)]
+mod tests;
+
 /// Contains the features related code and the features querying method
 mod features;
 /// Contains a constant with a slice of all the reserved keywords RESERVED_KEYWORDS
@@ -627,6 +630,195 @@ impl<'a, W: Write> Writer<'a, W> {
         this.collect_required_features()?;
 
         Ok(this)
+    }
+
+    pub fn write_webgl_compute(&mut self) -> Result<ReflectionInfo, Error> {
+        // We use `writeln!(self.out)` throughout the write to add newlines
+        // to make the output more readable
+        // Write the version (It must be the first thing or it isn't a valid glsl output)
+        writeln!(self.out, "#version {}", self.options.version)?;
+        // Write all the needed extensions
+        //
+        // This used to be the last thing being written as it allowed to search for features while
+        // writing the module saving some loops but some older versions (420 or less) required the
+        // extensions to appear before being used, even though extensions are part of the
+        // preprocessor not the processor ¯\_(ツ)_/¯
+        self.features.write(self.options, &mut self.out)?;
+
+        // glsl es requires a precision to be specified for floats and ints
+        // TODO: Should this be user configurable? yes
+        writeln!(self.out)?;
+        writeln!(self.out, "precision highp float;")?;
+        writeln!(self.out, "precision highp int;")?;
+        writeln!(self.out)?;
+
+        // shader stage is always compute
+
+        if self.entry_point.stage != ShaderStage::Compute {
+            return Err(Error::Custom("Only supports compute shaders".into()));
+        };
+
+       // Write all named constants
+        let mut constants = self
+            .module
+            .constants
+            .iter()
+            .filter(|&(_, c)| c.name.is_some())
+            .peekable();
+        while let Some((handle, _)) = constants.next() {
+            self.write_global_constant(handle)?;
+            // Add extra newline for readability on last iteration
+            if constants.peek().is_none() {
+                writeln!(self.out)?;
+            }
+        }
+
+        let ep_info = self.info.get_entry_point(self.entry_point_idx as usize);
+
+        // // Write the globals
+        // //
+        // // Unless explicitly disabled with WriterFlags::INCLUDE_UNUSED_ITEMS,
+        // // we filter all globals that aren't used by the selected entry point as they might be
+        // // interfere with each other (i.e. two globals with the same location but different with
+        // // different classes)
+        let include_unused = self
+            .options
+            .writer_flags
+            .contains(WriterFlags::INCLUDE_UNUSED_ITEMS);
+        println!("{:?}", self.module.global_variables);
+        // for (handle, global) in self.module.global_variables.iter() {
+        //     let is_unused = ep_info[handle].is_empty();
+        //     if !include_unused && is_unused {
+        //         continue;
+        //     }
+
+        //     match self.module.types[global.ty].inner {
+        //         // We treat images separately because they might require
+        //         // writing the storage format
+        //         TypeInner::Image {
+        //             mut dim,
+        //             arrayed,
+        //             class,
+        //         } => {
+        //             // Gather the storage format if needed
+        //             let storage_format_access = match self.module.types[global.ty].inner {
+        //                 TypeInner::Image {
+        //                     class: crate::ImageClass::Storage { format, access },
+        //                     ..
+        //                 } => Some((format, access)),
+        //                 _ => None,
+        //             };
+        //             let es = true;
+        //             if dim == crate::ImageDimension::D1 && es {
+        //                 dim = crate::ImageDimension::D2
+        //             }
+
+        //             // Gether the location if needed
+        //             let layout_binding = if self.options.version.supports_explicit_locations() {
+        //                 let br = global.binding.as_ref().unwrap();
+        //                 self.options.binding_map.get(br).cloned()
+        //             } else {
+        //                 None
+        //             };
+
+        //             // Write all the layout qualifiers
+        //             if layout_binding.is_some() || storage_format_access.is_some() {
+        //                 write!(self.out, "layout(")?;
+        //                 if let Some(binding) = layout_binding {
+        //                     write!(self.out, "binding = {binding}")?;
+        //                 }
+        //                 if let Some((format, _)) = storage_format_access {
+        //                     let format_str = glsl_storage_format(format)?;
+        //                     let separator = match layout_binding {
+        //                         Some(_) => ",",
+        //                         None => "",
+        //                     };
+        //                     write!(self.out, "{separator}{format_str}")?;
+        //                 }
+        //                 write!(self.out, ") ")?;
+        //             }
+
+        //             if let Some((_, access)) = storage_format_access {
+        //                 self.write_storage_access(access)?;
+        //             }
+
+        //             // All images in glsl are `uniform`
+        //             // The trailing space is important
+        //             write!(self.out, "uniform ")?;
+
+        //             // write the type
+        //             //
+        //             // This is way we need the leading space because `write_image_type` doesn't add
+        //             // any spaces at the beginning or end
+        //             self.write_image_type(dim, arrayed, class)?;
+
+        //             // Finally write the name and end the global with a `;`
+        //             // The leading space is important
+        //             let global_name = self.get_global_name(handle, global);
+        //             writeln!(self.out, " {global_name};")?;
+        //             writeln!(self.out)?;
+
+        //             self.reflection_names_globals.insert(handle, global_name);
+        //         }
+        //         // glsl has no concept of samplers so we just ignore it
+        //         TypeInner::Sampler { .. } => continue,
+        //         // All other globals are written by `write_global`
+        //         _ => {
+        //             self.write_global(handle, global)?;
+        //             // Add a newline (only for readability)
+        //             writeln!(self.out)?;
+        //         }
+        //     }
+        // }
+
+        // for arg in self.entry_point.function.arguments.iter() {
+        //     self.write_varying(arg.binding.as_ref(), arg.ty, false)?;
+        // }
+        // if let Some(ref result) = self.entry_point.function.result {
+        //     self.write_varying(result.binding.as_ref(), result.ty, true)?;
+        // }
+        // writeln!(self.out)?;
+
+        // Write all regular functions
+        for (handle, function) in self.module.functions.iter() {
+            // Check that the function doesn't use globals that aren't supported
+            // by the current entry point
+            if !include_unused && !ep_info.dominates_global_use(&self.info[handle]) {
+                continue;
+            }
+
+            let fun_info = &self.info[handle];
+
+            // Skip functions that that are not compatible with this entry point's stage.
+            //
+            // When validation is enabled, it rejects modules whose entry points try to call
+            // incompatible functions, so if we got this far, then any functions incompatible
+            // with our selected entry point must not be used.
+            //
+            // When validation is disabled, `fun_info.available_stages` is always just
+            // `ShaderStages::all()`, so this will write all functions in the module, and
+            // the downstream GLSL compiler will catch any problems.
+            if !fun_info.available_stages.contains(ep_info.available_stages) {
+                continue;
+            }
+
+            // Write the function
+            self.write_function(back::FunctionType::Function(handle), function, fun_info)?;
+
+            writeln!(self.out)?;
+        }
+
+        self.write_function(
+            back::FunctionType::EntryPoint(self.entry_point_idx),
+            &self.entry_point.function,
+            ep_info,
+        )?;
+
+        // Add newline at the end of file
+        writeln!(self.out)?;
+
+        // Collect all reflection info and return it to the user
+        self.collect_reflection_info()
     }
 
     /// Writes the [`Module`](crate::Module) as glsl to the output
@@ -4418,8 +4610,8 @@ impl<'a, W: Write> Writer<'a, W> {
                 }
                 _ => match var.space {
                     crate::AddressSpace::Uniform | crate::AddressSpace::Storage { .. } => {
-                        let name = self.reflection_names_globals[&handle].clone();
-                        uniforms.insert(handle, name);
+                        // let name = self.reflection_names_globals[&handle].clone();
+                        // uniforms.insert(handle, name);
                     }
                     crate::AddressSpace::PushConstant => {
                         let name = self.reflection_names_globals[&handle].clone();
