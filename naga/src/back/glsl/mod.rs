@@ -687,13 +687,16 @@ impl<'a, W: Write> Writer<'a, W> {
 
         for global_variable in self.module.global_variables.iter() {
             match global_variable.1.space {
-                AddressSpace::Storage { access } => {
+                AddressSpace::Storage { access: _ } => {
                     let name = global_variable.1.name.as_ref().ok_or_else(|| Error::Custom("Missing name".into()))?;
-                    writeln!(self.out, "")?;
+
+                    writeln!(self.out, "uniform sampler2D uniform_{name};")?;
                 }
                 _ => continue
             }
         }
+
+        writeln!(self.out)?;
 
         // Write all regular functions
         for (handle, function) in self.module.functions.iter() {
