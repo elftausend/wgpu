@@ -46,9 +46,7 @@ to output a [`Module`](crate::Module) into glsl
 pub use features::Features;
 
 use crate::{
-    back,
-    proc::{self, NameKey},
-    valid, Handle, ShaderStage, TypeInner,
+    back, proc::{self, NameKey}, valid, AddressSpace, Handle, ShaderStage, TypeInner
 };
 use features::FeaturesManager;
 use std::{
@@ -686,98 +684,16 @@ impl<'a, W: Write> Writer<'a, W> {
             .writer_flags
             .contains(WriterFlags::INCLUDE_UNUSED_ITEMS);
         println!("{:?}", self.module.global_variables);
-        // for (handle, global) in self.module.global_variables.iter() {
-        //     let is_unused = ep_info[handle].is_empty();
-        //     if !include_unused && is_unused {
-        //         continue;
-        //     }
 
-        //     match self.module.types[global.ty].inner {
-        //         // We treat images separately because they might require
-        //         // writing the storage format
-        //         TypeInner::Image {
-        //             mut dim,
-        //             arrayed,
-        //             class,
-        //         } => {
-        //             // Gather the storage format if needed
-        //             let storage_format_access = match self.module.types[global.ty].inner {
-        //                 TypeInner::Image {
-        //                     class: crate::ImageClass::Storage { format, access },
-        //                     ..
-        //                 } => Some((format, access)),
-        //                 _ => None,
-        //             };
-        //             let es = true;
-        //             if dim == crate::ImageDimension::D1 && es {
-        //                 dim = crate::ImageDimension::D2
-        //             }
-
-        //             // Gether the location if needed
-        //             let layout_binding = if self.options.version.supports_explicit_locations() {
-        //                 let br = global.binding.as_ref().unwrap();
-        //                 self.options.binding_map.get(br).cloned()
-        //             } else {
-        //                 None
-        //             };
-
-        //             // Write all the layout qualifiers
-        //             if layout_binding.is_some() || storage_format_access.is_some() {
-        //                 write!(self.out, "layout(")?;
-        //                 if let Some(binding) = layout_binding {
-        //                     write!(self.out, "binding = {binding}")?;
-        //                 }
-        //                 if let Some((format, _)) = storage_format_access {
-        //                     let format_str = glsl_storage_format(format)?;
-        //                     let separator = match layout_binding {
-        //                         Some(_) => ",",
-        //                         None => "",
-        //                     };
-        //                     write!(self.out, "{separator}{format_str}")?;
-        //                 }
-        //                 write!(self.out, ") ")?;
-        //             }
-
-        //             if let Some((_, access)) = storage_format_access {
-        //                 self.write_storage_access(access)?;
-        //             }
-
-        //             // All images in glsl are `uniform`
-        //             // The trailing space is important
-        //             write!(self.out, "uniform ")?;
-
-        //             // write the type
-        //             //
-        //             // This is way we need the leading space because `write_image_type` doesn't add
-        //             // any spaces at the beginning or end
-        //             self.write_image_type(dim, arrayed, class)?;
-
-        //             // Finally write the name and end the global with a `;`
-        //             // The leading space is important
-        //             let global_name = self.get_global_name(handle, global);
-        //             writeln!(self.out, " {global_name};")?;
-        //             writeln!(self.out)?;
-
-        //             self.reflection_names_globals.insert(handle, global_name);
-        //         }
-        //         // glsl has no concept of samplers so we just ignore it
-        //         TypeInner::Sampler { .. } => continue,
-        //         // All other globals are written by `write_global`
-        //         _ => {
-        //             self.write_global(handle, global)?;
-        //             // Add a newline (only for readability)
-        //             writeln!(self.out)?;
-        //         }
-        //     }
-        // }
-
-        // for arg in self.entry_point.function.arguments.iter() {
-        //     self.write_varying(arg.binding.as_ref(), arg.ty, false)?;
-        // }
-        // if let Some(ref result) = self.entry_point.function.result {
-        //     self.write_varying(result.binding.as_ref(), result.ty, true)?;
-        // }
-        // writeln!(self.out)?;
+        for global_variable in self.module.global_variables.iter() {
+            match global_variable.1.space {
+                AddressSpace::Storage { access } => {
+                    let name = global_variable.1.name.as_ref().ok_or_else(|| Error::Custom("Missing name".into()))?;
+                    writeln!(self.out, "")?;
+                }
+                _ => continue
+            }
+        }
 
         // Write all regular functions
         for (handle, function) in self.module.functions.iter() {
