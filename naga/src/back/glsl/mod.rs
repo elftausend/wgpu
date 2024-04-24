@@ -46,7 +46,9 @@ to output a [`Module`](crate::Module) into glsl
 pub use features::Features;
 
 use crate::{
-    back, proc::{self, NameKey}, valid, AddressSpace, Handle, ShaderStage, TypeInner
+    back,
+    proc::{self, NameKey},
+    valid, AddressSpace, Handle, ShaderStage, TypeInner,
 };
 use features::FeaturesManager;
 use std::{
@@ -656,7 +658,7 @@ impl<'a, W: Write> Writer<'a, W> {
             return Err(Error::Custom("Only supports compute shaders".into()));
         };
 
-       // Write all named constants
+        // Write all named constants
         let mut constants = self
             .module
             .constants
@@ -688,11 +690,15 @@ impl<'a, W: Write> Writer<'a, W> {
         for global_variable in self.module.global_variables.iter() {
             match global_variable.1.space {
                 AddressSpace::Storage { access: _ } => {
-                    let name = global_variable.1.name.as_ref().ok_or_else(|| Error::Custom("Missing name".into()))?;
+                    let name = global_variable
+                        .1
+                        .name
+                        .as_ref()
+                        .ok_or_else(|| Error::Custom("Missing name".into()))?;
 
                     writeln!(self.out, "uniform sampler2D uniform_{name};")?;
                 }
-                _ => continue
+                _ => continue,
             }
         }
 

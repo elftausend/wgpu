@@ -1,5 +1,8 @@
-use naga::{back::glsl::{Options, PipelineOptions, Version, Writer}, proc::BoundsCheckPolicies, valid::ModuleInfo};
-
+use naga::{
+    back::glsl::{Options, PipelineOptions, Version, Writer},
+    proc::BoundsCheckPolicies,
+    valid::ModuleInfo,
+};
 
 pub fn parse_and_validate_wgsl(
     src: &str,
@@ -39,12 +42,15 @@ fn main() {
 
             ";
     let (module, info) = parse_and_validate_wgsl(&src).unwrap();
-    
+
     // 310 is required for compute shaders
-    let version = Version::Embedded { version: 310, is_webgl: true };
+    let version = Version::Embedded {
+        version: 310,
+        is_webgl: true,
+    };
     let mut glsl = String::new();
     let options = Options {
-        version, 
+        version,
         ..Default::default()
     };
     let pipeline_options = PipelineOptions {
