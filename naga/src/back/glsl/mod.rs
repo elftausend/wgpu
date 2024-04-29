@@ -67,6 +67,8 @@ mod features;
 /// Contains a constant with a slice of all the reserved keywords RESERVED_KEYWORDS
 mod keywords;
 
+mod write_compute_function;
+
 /// List of supported `core` GLSL versions.
 pub const SUPPORTED_CORE_VERSIONS: &[u16] = &[140, 150, 330, 400, 410, 420, 430, 440, 450, 460];
 /// List of supported `es` GLSL versions.
@@ -704,6 +706,18 @@ impl<'a, W: Write> Writer<'a, W> {
 
         writeln!(self.out)?;
 
+        writeln!(self.out, "thread_viewport_width")?;
+        writeln!(self.out, "thread_viewport_height")?;
+        writeln!(self.out)?;
+        writeln!(self.out, "in vec2 thread_uv;")?;
+        writeln!(self.out)?;
+
+        self.write_nd_select_fns()?;
+        writeln!(self.out)?;
+        
+        self.write_decode_encode()?;
+        writeln!(self.out)?;
+
         // Write all regular functions
         for (handle, function) in self.module.functions.iter() {
             // Check that the function doesn't use globals that aren't supported
@@ -733,7 +747,7 @@ impl<'a, W: Write> Writer<'a, W> {
             writeln!(self.out)?;
         }
 
-        self.write_function(
+        self.write_compute_function(
             back::FunctionType::EntryPoint(self.entry_point_idx),
             &self.entry_point.function,
             ep_info,

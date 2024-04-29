@@ -69,7 +69,6 @@ fn main() {
     )
     .unwrap();
     writer.write_webgl_compute().unwrap();
-    println!("glsl: {glsl}");
 
     let mut glsl_complete = String::new();
     let mut writer = Writer::new(
@@ -84,4 +83,6 @@ fn main() {
 
     writer.write().unwrap();
     println!("glsl: {glsl_complete}");
+
+    println!("compute glsl: {glsl}");
 }
