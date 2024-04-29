@@ -44,10 +44,7 @@ vec2 select_3D (int textureWidth, int textureHeight, int width, int height, int 
     pub fn write_decode_encode(&mut self) -> Result<(), std::fmt::Error> {
         writeln!(
             self.out,
-            "
-
-
-vec2 int_mod(vec2 x, float y) {{
+            "vec2 int_mod(vec2 x, float y) {{
   vec2 res = floor(mod(x, y));
   return res * step(1.0 - floor(y), -res);
 }}
@@ -315,7 +312,7 @@ highp vec4 encode(highp float f) {{
         for sta in func.body.iter() {
             // Write a statement, the indentation should always be 1 when writing the function body
             // `write_stmt` adds a newline
-            self.write_stmt(sta, &ctx, back::Level(1))?;
+            self.write_compute_stmt(sta, &ctx, back::Level(1))?;
         }
 
         // Close braces and add a newline

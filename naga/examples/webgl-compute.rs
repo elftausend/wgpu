@@ -25,7 +25,7 @@ fn main() {
     let src = "
                 @group(0)
                 @binding(0)
-                var<storage, read_write> x: array<f32>;
+                var<storage, read> x: array<f32>;
 
                 @group(0)
                 @binding(1)
@@ -59,17 +59,6 @@ fn main() {
         multiview: None,
     };
 
-    let mut writer = Writer::new(
-        &mut glsl,
-        &module,
-        &info,
-        &options,
-        &pipeline_options,
-        BoundsCheckPolicies::default(),
-    )
-    .unwrap();
-    writer.write_webgl_compute().unwrap();
-
     let mut glsl_complete = String::new();
     let mut writer = Writer::new(
         &mut glsl_complete,
@@ -83,6 +72,20 @@ fn main() {
 
     writer.write().unwrap();
     println!("glsl: {glsl_complete}");
+
+
+    println!("modu: {module:?}");
+
+    let mut writer = Writer::new(
+        &mut glsl,
+        &module,
+        &info,
+        &options,
+        &pipeline_options,
+        BoundsCheckPolicies::default(),
+    )
+    .unwrap();
+    writer.write_webgl_compute().unwrap();
 
     println!("compute glsl: {glsl}");
 }

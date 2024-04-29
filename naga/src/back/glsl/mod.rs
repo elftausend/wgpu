@@ -68,6 +68,8 @@ mod features;
 mod keywords;
 
 mod write_compute_function;
+mod write_compute_stmt;
+mod write_compute_expr;
 
 /// List of supported `core` GLSL versions.
 pub const SUPPORTED_CORE_VERSIONS: &[u16] = &[140, 150, 330, 400, 410, 420, 430, 440, 450, 460];
@@ -2089,8 +2091,9 @@ impl<'a, W: Write> Writer<'a, W> {
         ctx: &back::FunctionCtx,
         level: back::Level,
     ) -> BackendResult {
-        use crate::Statement;
 
+        use crate::Statement;
+        println!("statement: {sta:?}");
         match *sta {
             // This is where we can generate intermediate constants for some expression types.
             Statement::Emit(ref range) => {
