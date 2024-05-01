@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use crate::{back, proc::NameKey, valid, TypeInner};
+use crate::{back, proc::NameKey, valid, Binding, BuiltIn, TypeInner};
 
 use super::{
     glsl_storage_format, is_value_init_supported, BackendResult, VaryingName, VaryingOptions,
@@ -8,6 +8,28 @@ use super::{
 };
 
 impl<'a, W: Write> Writer<'a, W> {
+    pub fn write_gws(&mut self) -> Result<(), std::fmt::Error> {
+        writeln!(self.out, "
+uniform uint gws_x;
+uniform uint gws_y;
+uniform uint gws_z;
+        ")
+    }
+
+    pub fn write_global_invocation_vec(&mut self) -> Result<(), std::fmt::Error> {
+        writeln!(self.out, "
+    uint absolute_col = uint(thread_uv.x * float(thread_viewport_width));
+    uint absolute_row = uint(thread_uv.y * float(thread_viewport_height));
+    uint idx = absolute_row * thread_viewport_width + absolute_col;
+
+    uint x_idx = idx % gws_x;
+    uint y_idx = (idx / gws_x) % gws_y;
+    uint z_idx = (idx / (gws_x * gws_y)) % gws_z;
+
+    uvec3 global_id = vec3(x_idx, y_idx, z_idx);
+        ")
+    }
+
     pub fn write_nd_select_fns(&mut self) -> Result<(), std::fmt::Error> {
         // select_1D is practically the same as select_2D
         // thread_uv is already 2D -> calculation from 2D to 1D happens before -> redundant
@@ -33,6 +55,15 @@ vec2 select_3D (int textureWidth, int textureHeight, int width, int height, int 
   int i = index_x + (index_y * width) + (index_z * (width * height));
   float col = float(i % textureWidth) + 0.5;
   float row = float(i / textureWidth) + 0.5;
+  return vec2 (
+    col / float(textureWidth),
+    row / float(textureHeight)
+  );
+}}
+
+vec2 select_from_idx(int textureWidth, int textureHeight, uint idx) {{
+  float col = float(idx % textureWidth) + 0.5;
+  float row = float(idx / textureWidth) + 0.5;
   return vec2 (
     col / float(textureWidth),
     row / float(textureHeight)
@@ -235,11 +266,19 @@ highp vec4 encode(highp float f) {{
             self.write_workgroup_variables_initialization(&ctx)?;
         }
 
-        /*
+        
         // Compose the function arguments from globals, in case of an entry point.
         if let back::FunctionType::EntryPoint(ep_index) = ctx.ty {
             let stage = self.module.entry_points[ep_index as usize].stage;
             for (index, arg) in func.arguments.iter().enumerate() {
+
+                if let Binding::BuiltIn(bi) = arg.binding.as_ref().unwrap() {
+                    if bi == &BuiltIn::GlobalInvocationId {
+                        self.write_global_invocation_vec()?;
+                        continue;
+                    }
+                }
+
                 write!(self.out, "{}", back::INDENT)?;
                 self.write_type(arg.ty)?;
                 let name = &self.names[&NameKey::EntryPointArgument(ep_index, index as u32)];
@@ -247,7 +286,8 @@ highp vec4 encode(highp float f) {{
                 write!(self.out, " = ")?;
                 match self.module.types[arg.ty].inner {
                     crate::TypeInner::Struct { ref members, .. } => {
-                        self.write_type(arg.ty)?;
+                        todo!()
+                        /*self.write_type(arg.ty)?;
                         write!(self.out, "(")?;
                         for (index, member) in members.iter().enumerate() {
                             let varying_name = VaryingName {
@@ -260,7 +300,7 @@ highp vec4 encode(highp float f) {{
                             }
                             write!(self.out, "{varying_name}")?;
                         }
-                        writeln!(self.out, ");")?;
+                        writeln!(self.out, ");")?;*/
                     }
                     _ => {
                         let varying_name = VaryingName {
@@ -268,11 +308,12 @@ highp vec4 encode(highp float f) {{
                             stage,
                             options: VaryingOptions::from_writer_options(self.options, false),
                         };
+
                         writeln!(self.out, "{varying_name};")?;
                     }
                 }
             }
-        }*/
+        }
 
         // Write all function locals
         // Locals are `type name (= init)?;` where the init part (including the =) are optional

@@ -1,9 +1,7 @@
 use std::fmt::Write;
 
 use crate::{back::{self, glsl::{Error, VaryingName, VaryingOptions, WriterFlags}}, proc::{self, NameKey}, ShaderStage, TypeInner};
-
 use super::{BackendResult, Writer};
-
 
 impl<'a, W: Write> Writer<'a, W> { 
     pub(super) fn write_compute_stmt(
@@ -58,8 +56,9 @@ impl<'a, W: Write> Writer<'a, W> {
                     }
 
                     if let Some(name) = expr_name {
+                        println!("write named: {name:?}");
                         write!(self.out, "{level}")?;
-                        self.write_named_expr(handle, name, handle, ctx)?;
+                        self.write_named_compute_expr(handle, name, handle, ctx)?;
                     }
                 }
             }
@@ -266,7 +265,7 @@ impl<'a, W: Write> Writer<'a, W> {
                 let result_name = format!("{}{}", back::BAKE_PREFIX, result.index());
                 write!(self.out, "{level}")?;
                 // Expressions cannot have side effects, so just writing the expression here is fine.
-                self.write_named_expr(pointer, result_name, result, ctx)?;
+                self.write_named_compute_expr(pointer, result_name, result, ctx)?;
 
                 self.write_barrier(crate::Barrier::WORK_GROUP, level)?;
             }
