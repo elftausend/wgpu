@@ -691,16 +691,18 @@ impl<'a, W: Write> Writer<'a, W> {
             .contains(WriterFlags::INCLUDE_UNUSED_ITEMS);
         println!("{:?}", self.module.global_variables);
 
-        for global_variable in self.module.global_variables.iter() {
-            match global_variable.1.space {
+        for (handle, global) in self.module.global_variables.iter() {
+            match global.space {
                 AddressSpace::Storage { access: _ } => {
-                    let name = global_variable
-                        .1
-                        .name
-                        .as_ref()
-                        .ok_or_else(|| Error::Custom("Missing name".into()))?;
+                    // let name = global
+                    //     .name
+                    //     .as_ref()
+                    //     .ok_or_else(|| Error::Custom("Missing name".into()))?;
+                    let name = self.get_global_name(handle, global);
 
-                    writeln!(self.out, "uniform sampler2D uniform_{name};")?;
+                    writeln!(self.out, "uniform sampler2D {name};")?;
+                    writeln!(self.out, "uniform uint {name}_texture_width;")?;
+                    writeln!(self.out, "uniform uint {name}_texture_height;")?;
                 }
                 _ => continue,
             }
