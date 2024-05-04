@@ -21,13 +21,13 @@ use crate::{
     hal_api::HalApi,
     hal_label, id,
     init_tracker::TextureInitTracker,
+    lock::{rank, Mutex, RwLock},
     resource::{self, ResourceInfo},
     snatch::Snatchable,
     track,
 };
 
 use hal::{Queue as _, Surface as _};
-use parking_lot::{Mutex, RwLock};
 use thiserror::Error;
 use wgt::SurfaceStatus as Status;
 
@@ -215,7 +215,10 @@ impl Global {
                     desc: texture_desc,
                     hal_usage,
                     format_features,
-                    initialization_status: RwLock::new(TextureInitTracker::new(1, 1)),
+                    initialization_status: RwLock::new(
+                        rank::TEXTURE_INITIALIZATION_STATUS,
+                        TextureInitTracker::new(1, 1),
+                    ),
                     full_range: track::TextureSelector {
                         layers: 0..1,
                         mips: 0..1,
@@ -224,11 +227,14 @@ impl Global {
                         "<Surface Texture>",
                         Some(device.tracker_indices.textures.clone()),
                     ),
-                    clear_mode: RwLock::new(resource::TextureClearMode::Surface {
-                        clear_view: Some(clear_view),
-                    }),
-                    views: Mutex::new(Vec::new()),
-                    bind_groups: Mutex::new(Vec::new()),
+                    clear_mode: RwLock::new(
+                        rank::TEXTURE_CLEAR_MODE,
+                        resource::TextureClearMode::Surface {
+                            clear_view: Some(clear_view),
+                        },
+                    ),
+                    views: Mutex::new(rank::TEXTURE_VIEWS, Vec::new()),
+                    bind_groups: Mutex::new(rank::TEXTURE_BIND_GROUPS, Vec::new()),
                 };
 
                 let (id, resource) = fid.assign(Arc::new(texture));
