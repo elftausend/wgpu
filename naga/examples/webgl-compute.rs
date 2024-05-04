@@ -34,9 +34,9 @@ fn main() {
                 @compute
                 @workgroup_size(32)
                 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-                    if global_id.x >= arrayLength(&out) {
+                    /*if global_id.x >= arrayLength(&out) {
                         return;    
-                    }
+                    }*/
                     out[global_id.x] = 3.0 * x[global_id.x];
                 }
 
@@ -72,7 +72,6 @@ fn main() {
 
     writer.write().unwrap();
     println!("glsl: {glsl_complete}");
-
 
     println!("modu: {module:?}");
 

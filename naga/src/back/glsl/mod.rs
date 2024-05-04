@@ -53,8 +53,7 @@ use crate::{
 use features::FeaturesManager;
 use std::{
     cmp::Ordering,
-    fmt,
-    fmt::{Error as FmtError, Write},
+    fmt::{self, Error as FmtError, Write},
     mem,
 };
 use thiserror::Error;
@@ -67,9 +66,9 @@ mod features;
 /// Contains a constant with a slice of all the reserved keywords RESERVED_KEYWORDS
 mod keywords;
 
+mod write_compute_expr;
 mod write_compute_function;
 mod write_compute_stmt;
-mod write_compute_expr;
 
 /// List of supported `core` GLSL versions.
 pub const SUPPORTED_CORE_VERSIONS: &[u16] = &[140, 150, 330, 400, 410, 420, 430, 440, 450, 460];
@@ -691,7 +690,15 @@ impl<'a, W: Write> Writer<'a, W> {
             .contains(WriterFlags::INCLUDE_UNUSED_ITEMS);
         println!("{:?}", self.module.global_variables);
 
+        let mut output_globals = Vec::new();
+
+        self.write_outputs(&self.entry_point.function, &mut output_globals)?;
+        writeln!(self.out)?;
+
         for (handle, global) in self.module.global_variables.iter() {
+            if output_globals.contains(&handle) {
+                continue;
+            }
             match global.space {
                 AddressSpace::Storage { access: _ } => {
                     // let name = global
@@ -720,7 +727,7 @@ impl<'a, W: Write> Writer<'a, W> {
 
         self.write_nd_select_fns()?;
         writeln!(self.out)?;
-        
+
         self.write_decode_encode()?;
         writeln!(self.out)?;
 
@@ -748,7 +755,12 @@ impl<'a, W: Write> Writer<'a, W> {
             }
 
             // Write the function
-            self.write_function(back::FunctionType::Function(handle), function, fun_info)?;
+            self.write_compute_function(
+                back::FunctionType::Function(handle),
+                function,
+                fun_info,
+                &output_globals,
+            )?;
 
             writeln!(self.out)?;
         }
@@ -757,6 +769,7 @@ impl<'a, W: Write> Writer<'a, W> {
             back::FunctionType::EntryPoint(self.entry_point_idx),
             &self.entry_point.function,
             ep_info,
+            &output_globals,
         )?;
 
         // Add newline at the end of file
@@ -2095,7 +2108,6 @@ impl<'a, W: Write> Writer<'a, W> {
         ctx: &back::FunctionCtx,
         level: back::Level,
     ) -> BackendResult {
-
         use crate::Statement;
         println!("statement: {sta:?}");
         match *sta {

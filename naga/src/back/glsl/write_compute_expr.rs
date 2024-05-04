@@ -1,10 +1,16 @@
 use core::panic;
 use std::fmt::Write;
 
-use crate::{back::{self, glsl::{glsl_scalar, BinaryOperation, Error, Features, FREXP_FUNCTION, MODF_FUNCTION}}, proc::{self, NameKey}, Handle, TypeInner};
+use crate::{
+    back::{
+        self,
+        glsl::{glsl_scalar, BinaryOperation, Error, Features, FREXP_FUNCTION, MODF_FUNCTION},
+    },
+    proc::{self, NameKey},
+    Handle, TypeInner,
+};
 
 use super::{BackendResult, Writer};
-
 
 impl<'a, W: Write> Writer<'a, W> {
     pub(super) fn write_named_compute_expr(
@@ -80,7 +86,7 @@ impl<'a, W: Write> Writer<'a, W> {
                 dbg!(&ctx.expressions[base]);
                 dbg!(&ctx.expressions[index]);
 
-                write!(self.out, "decode( texture(")?;
+                write!(self.out, "decode( texture( ")?;
                 self.write_compute_expr(base, ctx)?;
                 write!(self.out, ",select(")?;
                 self.write_compute_expr(base, ctx)?;
@@ -89,7 +95,7 @@ impl<'a, W: Write> Writer<'a, W> {
                 self.write_compute_expr(base, ctx)?;
                 write!(self.out, "_texture_height, ")?;
                 self.write_compute_expr(index, ctx)?;
-                write!(self.out, ")))")?;
+                write!(self.out, ") ) )")?;
             }
             // `AccessIndex` is the same as `Access` except that the index is a constant and it can
             // be applied to structs, in this case we need to find the name of the field at that

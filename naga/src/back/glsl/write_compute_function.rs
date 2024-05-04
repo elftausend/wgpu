@@ -1,6 +1,10 @@
-use std::fmt::Write;
+use std::{collections::HashSet, fmt::Write};
 
-use crate::{back, proc::NameKey, valid, Binding, BuiltIn, TypeInner};
+use crate::{
+    back,
+    proc::{NameKey, TypeResolution},
+    valid, Arena, Binding, BuiltIn, Expression, GlobalVariable, Handle, Statement, TypeInner,
+};
 
 use super::{
     glsl_storage_format, is_value_init_supported, BackendResult, VaryingName, VaryingOptions,
@@ -8,16 +12,69 @@ use super::{
 };
 
 impl<'a, W: Write> Writer<'a, W> {
+    pub fn extract_global_variable(
+        &self,
+        expressions: &Arena<Expression>,
+        pointer: Handle<Expression>,
+    ) -> Option<(Handle<GlobalVariable>, &GlobalVariable)> {
+        let out = &expressions[pointer];
+        let Expression::Access { base, index: _ } = out else {
+            return None;
+        };
+        let Expression::GlobalVariable(global_var_handle) = &expressions[*base] else {
+            return None;
+        };
+        let global_var = &self.module.global_variables[*global_var_handle];
+        Some((*global_var_handle, global_var))
+    }
+    pub fn write_outputs(
+        &mut self,
+        func: &crate::Function,
+        output_global: &mut Vec<Handle<GlobalVariable>>,
+    ) -> Result<(), std::fmt::Error> {
+        for stmt in self.entry_point.function.body.iter() {
+            match stmt {
+                Statement::Store { pointer, value: _ } => {
+                    let Some((global_var_handle, global_var)) =
+                        self.extract_global_variable(&func.expressions, *pointer)
+                    else {
+                        continue;
+                    };
+                    let global_name = self.get_global_name(global_var_handle, global_var);
+                    writeln!(
+                        self.out,
+                        "layout(location = {}) out vec4 {global_name};",
+                        output_global.len()
+                    )?;
+                    output_global.push(global_var_handle);
+                    // dbg!(global_var);
+                    // if let TypeResolution::Value(TypeInner::Pointer { base, space }) = out {
+                    //     &self.module.global_variables[*base];
+                    //     let out = &self.module.types[*base];
+                    //     dbg!(out);
+                    // }
+                }
+                _ => continue,
+            }
+        }
+        write!(self.out, "")
+    }
+
     pub fn write_gws(&mut self) -> Result<(), std::fmt::Error> {
-        writeln!(self.out, "
+        writeln!(
+            self.out,
+            "
 uniform uint gws_x;
 uniform uint gws_y;
 uniform uint gws_z;
-        ")
+        "
+        )
     }
 
     pub fn write_global_invocation_vec(&mut self) -> Result<(), std::fmt::Error> {
-        writeln!(self.out, "
+        writeln!(
+            self.out,
+            "
     uint absolute_col = uint(thread_uv.x * float(thread_viewport_width));
     uint absolute_row = uint(thread_uv.y * float(thread_viewport_height));
     uint idx = absolute_row * thread_viewport_width + absolute_col;
@@ -27,7 +84,8 @@ uniform uint gws_z;
     uint z_idx = (idx / (gws_x * gws_y)) % gws_z;
 
     uvec3 global_id = vec3(x_idx, y_idx, z_idx);
-        ")
+        "
+        )
     }
 
     pub fn write_nd_select_fns(&mut self) -> Result<(), std::fmt::Error> {
@@ -142,6 +200,7 @@ highp vec4 encode(highp float f) {{
         ty: back::FunctionType,
         func: &crate::Function,
         info: &valid::FunctionInfo,
+        output_globals: &Vec<Handle<GlobalVariable>>,
     ) -> BackendResult {
         // Create a function context for the function being written
         let ctx = back::FunctionCtx {
@@ -266,12 +325,10 @@ highp vec4 encode(highp float f) {{
             self.write_workgroup_variables_initialization(&ctx)?;
         }
 
-        
         // Compose the function arguments from globals, in case of an entry point.
         if let back::FunctionType::EntryPoint(ep_index) = ctx.ty {
             let stage = self.module.entry_points[ep_index as usize].stage;
             for (index, arg) in func.arguments.iter().enumerate() {
-
                 if let Binding::BuiltIn(bi) = arg.binding.as_ref().unwrap() {
                     if bi == &BuiltIn::GlobalInvocationId {
                         self.write_global_invocation_vec()?;
@@ -351,10 +408,26 @@ highp vec4 encode(highp float f) {{
 
         // Write the function body (statement list)
         for sta in func.body.iter() {
+            if let back::FunctionType::EntryPoint(_) = ctx.ty {
+                if let Statement::Return { value: _ } = sta {
+                    for output_global_handle in output_globals {
+                        let global_var = &self.module.global_variables[*output_global_handle];
+                        let name = self.get_global_name(*output_global_handle, global_var);
+                        write!(self.out, "{}", back::Level(1))?;
+                        writeln!(self.out, "{name} = encode( {name}.r )")?;
+                    }
+                    write!(self.out, "{}", back::Level(1))?;
+                    writeln!(self.out, "return;")?;
+                    continue;
+                }
+            }
+
             // Write a statement, the indentation should always be 1 when writing the function body
             // `write_stmt` adds a newline
             self.write_compute_stmt(sta, &ctx, back::Level(1))?;
         }
+
+        if let back::FunctionType::EntryPoint(_) = ctx.ty {}
 
         // Close braces and add a newline
         writeln!(self.out, "}}")?;

@@ -1,9 +1,16 @@
 use std::fmt::Write;
 
-use crate::{back::{self, glsl::{Error, VaryingName, VaryingOptions, WriterFlags}}, proc::{self, NameKey}, ShaderStage, TypeInner};
 use super::{BackendResult, Writer};
+use crate::{
+    back::{
+        self,
+        glsl::{Error, VaryingName, VaryingOptions, WriterFlags},
+    },
+    proc::{self, NameKey},
+    ShaderStage, TypeInner,
+};
 
-impl<'a, W: Write> Writer<'a, W> { 
+impl<'a, W: Write> Writer<'a, W> {
     pub(super) fn write_compute_stmt(
         &mut self,
         sta: &crate::Statement,
@@ -250,6 +257,18 @@ impl<'a, W: Write> Writer<'a, W> {
             // Stores in glsl are just variable assignments written as `pointer = value;`
             Statement::Store { pointer, value } => {
                 write!(self.out, "{level}")?;
+                if let Some((handle, global_var)) =
+                    self.extract_global_variable(ctx.expressions, pointer)
+                {
+                    write!(
+                        self.out,
+                        "{}.r = ",
+                        self.get_global_name(handle, global_var)
+                    )?;
+                    self.write_compute_expr(value, ctx)?;
+                    writeln!(self.out, ";")?;
+                    return Ok(());
+                }
                 self.write_compute_expr(pointer, ctx)?;
                 write!(self.out, " = ")?;
                 self.write_compute_expr(value, ctx)?;
@@ -284,7 +303,6 @@ impl<'a, W: Write> Writer<'a, W> {
                 ref arguments,
                 result,
             } => {
-
                 todo!();
                 write!(self.out, "{level}")?;
                 if let Some(expr) = result {
@@ -311,7 +329,9 @@ impl<'a, W: Write> Writer<'a, W> {
                         }
                     })
                     .collect();
-                self.write_slice(&arguments, |this, _, arg| this.write_compute_expr(*arg, ctx))?;
+                self.write_slice(&arguments, |this, _, arg| {
+                    this.write_compute_expr(*arg, ctx)
+                })?;
                 writeln!(self.out, ");")?
             }
             Statement::Atomic {
@@ -344,6 +364,5 @@ impl<'a, W: Write> Writer<'a, W> {
         }
 
         Ok(())
-
     }
 }
