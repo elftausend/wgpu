@@ -705,11 +705,13 @@ impl<'a, W: Write> Writer<'a, W> {
                     //     .name
                     //     .as_ref()
                     //     .ok_or_else(|| Error::Custom("Missing name".into()))?;
-                    let name = self.get_global_name(handle, global);
+                    let global_name = self.get_global_name(handle, global);
 
-                    writeln!(self.out, "uniform sampler2D {name};")?;
-                    writeln!(self.out, "uniform uint {name}_texture_width;")?;
-                    writeln!(self.out, "uniform uint {name}_texture_height;")?;
+                    writeln!(self.out, "uniform sampler2D {global_name};")?;
+                    writeln!(self.out, "uniform uint {global_name}_texture_width;")?;
+                    writeln!(self.out, "uniform uint {global_name}_texture_height;")?;
+                    
+                    self.reflection_names_globals.insert(handle, global_name);
                 }
                 _ => continue,
             }
@@ -4568,8 +4570,8 @@ impl<'a, W: Write> Writer<'a, W> {
                 }
                 _ => match var.space {
                     crate::AddressSpace::Uniform | crate::AddressSpace::Storage { .. } => {
-                        // let name = self.reflection_names_globals[&handle].clone();
-                        // uniforms.insert(handle, name);
+                        let name = self.reflection_names_globals[&handle].clone();
+                        uniforms.insert(handle, name);
                     }
                     crate::AddressSpace::PushConstant => {
                         let name = self.reflection_names_globals[&handle].clone();
