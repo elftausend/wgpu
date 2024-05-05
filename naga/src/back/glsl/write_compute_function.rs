@@ -92,7 +92,7 @@ uniform uint gws_z;
         // select_1D is practically the same as select_2D
         // thread_uv is already 2D -> calculation from 2D to 1D happens before -> redundant
         writeln!(self.out, "
-vec2 select_from_idx(int textureWidth, int textureHeight, uint idx) {{
+vec2 select_from_idx(uint textureWidth, uint textureHeight, uint idx) {{
   float col = float(idx % textureWidth) + 0.5;
   float row = float(idx / textureWidth) + 0.5;
   return vec2 (

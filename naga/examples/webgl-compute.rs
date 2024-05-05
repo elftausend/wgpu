@@ -87,4 +87,5 @@ fn main() {
     writer.write_webgl_compute().unwrap();
 
     println!("compute glsl: {glsl}");
+    std::fs::write("output", glsl).unwrap();
 }
