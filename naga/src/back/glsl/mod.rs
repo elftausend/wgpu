@@ -328,7 +328,7 @@ pub struct ReflectionInfo {
 #[derive(Debug)]
 pub struct ReflectionInfoCompute {
     /// Mapping between input uniform variables and names.
-    pub input_uniforms: crate::FastHashMap<Handle<crate::GlobalVariable>, String>,
+    pub input_storage_uniforms: crate::FastHashMap<Handle<crate::GlobalVariable>, String>,
     /// Mapping between output uniform variables and names.
     pub outputs: crate::FastHashMap<Handle<crate::GlobalVariable>, String>,
 }
@@ -699,7 +699,7 @@ impl<'a, W: Write> Writer<'a, W> {
         println!("{:?}", self.module.global_variables);
 
         let mut output_globals = Vec::new();
-        let mut input_uniforms = FxHashMap::default();
+        let mut input_storage_uniforms = FxHashMap::default();
 
         self.write_outputs(&self.entry_point.function, &mut output_globals)?;
         writeln!(self.out)?;
@@ -721,7 +721,7 @@ impl<'a, W: Write> Writer<'a, W> {
                     writeln!(self.out, "uniform uint {global_name}_texture_height;")?;
 
                     // self.reflection_names_globals.insert(handle, global_name);
-                    input_uniforms.insert(handle, global_name);
+                    input_storage_uniforms.insert(handle, global_name);
                 }
                 _ => continue,
             }
@@ -790,7 +790,7 @@ impl<'a, W: Write> Writer<'a, W> {
         // Collect all reflection info and return it to the user
         // TODO: should add a seperate method
         Ok(ReflectionInfoCompute {
-            input_uniforms,
+            input_storage_uniforms,
             outputs: output_globals
                 .iter()
                 .map(|output_handle| {

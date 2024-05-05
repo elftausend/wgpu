@@ -40,6 +40,10 @@ impl<'a, W: Write> Writer<'a, W> {
                     else {
                         continue;
                     };
+                    if output_global.contains(&global_var_handle) {
+                        continue
+                    }
+                    
                     let global_name = self.get_global_name(global_var_handle, global_var);
                     writeln!(
                         self.out,
