@@ -717,8 +717,8 @@ impl<'a, W: Write> Writer<'a, W> {
 
         writeln!(self.out)?;
 
-        writeln!(self.out, "uniform uint thread_viewport_width")?;
-        writeln!(self.out, "uniform uint thread_viewport_height")?;
+        writeln!(self.out, "uniform uint thread_viewport_width;")?;
+        writeln!(self.out, "uniform uint thread_viewport_height;")?;
         writeln!(self.out)?;
         writeln!(self.out, "in vec2 thread_uv;")?;
         writeln!(self.out)?;
