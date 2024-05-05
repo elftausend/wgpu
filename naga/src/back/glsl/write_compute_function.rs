@@ -387,17 +387,16 @@ highp vec4 encode(highp float f) {{
         }
 
         // Write the function body (statement list)
-        for sta in func.body.iter() {
+        for (idx, sta) in func.body.iter().enumerate() {
             if let back::FunctionType::EntryPoint(_) = ctx.ty {
-                if let Statement::Return { value: _ } = sta {
+                if idx == func.body.len()-1 {
                     for output_global_handle in output_globals {
                         let global_var = &self.module.global_variables[*output_global_handle];
                         let name = self.get_global_name(*output_global_handle, global_var);
                         write!(self.out, "{}", back::Level(1))?;
                         writeln!(self.out, "{name} = encode( {name}.r );")?;
                     }
-                    write!(self.out, "{}", back::Level(1))?;
-                    writeln!(self.out, "return;")?;
+                    self.write_compute_stmt(sta, &ctx, back::Level(1))?;
                     continue;
                 }
             }

@@ -88,7 +88,7 @@ impl<'a, W: Write> Writer<'a, W> {
 
                 write!(self.out, "decode( texture( ")?;
                 self.write_compute_expr(base, ctx)?;
-                write!(self.out, " ,select_from_idx( ")?;
+                write!(self.out, ", select_from_idx( ")?;
                 self.write_compute_expr(base, ctx)?;
                 write!(self.out, "_texture_width, ")?;
 

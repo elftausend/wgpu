@@ -23,22 +23,23 @@ pub fn parse_and_validate_wgsl(
 
 fn main() {
     let src = "
-                @group(0)
-                @binding(0)
-                var<storage, read> x: array<f32>;
+            @group(0)
+            @binding(0)
+            var<storage, read> x: array<f32>;
 
-                @group(0)
-                @binding(1)
-                var<storage, read_write> out: array<f32>;
-                
-                @compute
-                @workgroup_size(32)
-                fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-                    /*if global_id.x >= arrayLength(&out) {
-                        return;    
-                    }*/
-                    out[global_id.x] = 3.0 * x[global_id.x];
-                }
+            @group(0)
+            @binding(1)
+            var<storage, read_write> out: array<f32>;
+            
+            @compute
+            @workgroup_size(32)
+            fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+                /*if global_id.x >= arrayLength(&out) {
+                    return;    
+                }*/
+                // if out is used on the right side: problem at the moment
+                out[global_id.x] = 3.0 * x[global_id.x];
+            }
 
             ";
     let (module, info) = parse_and_validate_wgsl(&src).unwrap();
