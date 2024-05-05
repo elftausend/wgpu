@@ -44,6 +44,7 @@ to output a [`Module`](crate::Module) into glsl
 // vector, matrices, samplers, image types and functions that provide common shader operations
 
 pub use features::Features;
+use rustc_hash::FxHashMap;
 
 use crate::{
     back,
@@ -323,6 +324,13 @@ pub struct ReflectionInfo {
     pub varying: crate::FastHashMap<String, VaryingLocation>,
     /// List of push constant items in the shader.
     pub push_constant_items: Vec<PushConstantItem>,
+}
+#[derive(Debug)]
+pub struct ReflectionInfoCompute {
+    /// Mapping between input uniform variables and names.
+    pub input_uniforms: crate::FastHashMap<Handle<crate::GlobalVariable>, String>,
+    /// Mapping between output uniform variables and names.
+    pub outputs: crate::FastHashMap<Handle<crate::GlobalVariable>, String>,
 }
 
 /// Mapping between a texture and its sampler, if it exists.
@@ -635,7 +643,7 @@ impl<'a, W: Write> Writer<'a, W> {
         Ok(this)
     }
 
-    pub fn write_webgl_compute(&mut self) -> Result<ReflectionInfo, Error> {
+    pub fn write_webgl_compute(&mut self) -> Result<ReflectionInfoCompute, Error> {
         // We use `writeln!(self.out)` throughout the write to add newlines
         // to make the output more readable
         // Write the version (It must be the first thing or it isn't a valid glsl output)
@@ -691,6 +699,7 @@ impl<'a, W: Write> Writer<'a, W> {
         println!("{:?}", self.module.global_variables);
 
         let mut output_globals = Vec::new();
+        let mut input_uniforms = FxHashMap::default();
 
         self.write_outputs(&self.entry_point.function, &mut output_globals)?;
         writeln!(self.out)?;
@@ -710,8 +719,9 @@ impl<'a, W: Write> Writer<'a, W> {
                     writeln!(self.out, "uniform sampler2D {global_name};")?;
                     writeln!(self.out, "uniform uint {global_name}_texture_width;")?;
                     writeln!(self.out, "uniform uint {global_name}_texture_height;")?;
-                    
-                    self.reflection_names_globals.insert(handle, global_name);
+
+                    // self.reflection_names_globals.insert(handle, global_name);
+                    input_uniforms.insert(handle, global_name);
                 }
                 _ => continue,
             }
@@ -778,7 +788,22 @@ impl<'a, W: Write> Writer<'a, W> {
         writeln!(self.out)?;
 
         // Collect all reflection info and return it to the user
-        self.collect_reflection_info()
+        // TODO: should add a seperate method
+        Ok(ReflectionInfoCompute {
+            input_uniforms,
+            outputs: output_globals
+                .iter()
+                .map(|output_handle| {
+                    (
+                        *output_handle,
+                        self.get_global_name(
+                            *output_handle,
+                            &self.module.global_variables[*output_handle],
+                        ),
+                    )
+                })
+                .collect(),
+        })
     }
 
     /// Writes the [`Module`](crate::Module) as glsl to the output

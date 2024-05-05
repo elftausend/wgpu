@@ -91,7 +91,9 @@ uniform uint gws_z;
     pub fn write_nd_select_fns(&mut self) -> Result<(), std::fmt::Error> {
         // select_1D is practically the same as select_2D
         // thread_uv is already 2D -> calculation from 2D to 1D happens before -> redundant
-        writeln!(self.out, "
+        writeln!(
+            self.out,
+            "
 vec2 select_from_idx(uint textureWidth, uint textureHeight, uint idx) {{
   float col = float(idx % textureWidth) + 0.5;
   float row = float(idx / textureWidth) + 0.5;
@@ -100,7 +102,8 @@ vec2 select_from_idx(uint textureWidth, uint textureHeight, uint idx) {{
     row / float(textureHeight)
   );
 }}
-        ")
+        "
+        )
     }
 
     pub fn write_decode_encode(&mut self) -> Result<(), std::fmt::Error> {
