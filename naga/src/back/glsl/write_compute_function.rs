@@ -387,7 +387,7 @@ highp vec4 encode(highp float f) {{
                         let global_var = &self.module.global_variables[*output_global_handle];
                         let name = self.get_global_name(*output_global_handle, global_var);
                         write!(self.out, "{}", back::Level(1))?;
-                        writeln!(self.out, "{name} = encode( {name}.r )")?;
+                        writeln!(self.out, "{name} = encode( {name}.r );")?;
                     }
                     write!(self.out, "{}", back::Level(1))?;
                     writeln!(self.out, "return;")?;
