@@ -83,7 +83,7 @@ uniform uint gws_z;
     uint y_idx = (idx / gws_x) % gws_y;
     uint z_idx = (idx / (gws_x * gws_y)) % gws_z;
 
-    uvec3 global_id = vec3(x_idx, y_idx, z_idx);
+    uvec3 global_id = uvec3(x_idx, y_idx, z_idx);
         "
         )
     }
