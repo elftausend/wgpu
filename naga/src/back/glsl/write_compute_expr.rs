@@ -948,7 +948,9 @@ impl<'a, W: Write> Writer<'a, W> {
             Expression::ArrayLength(expr) => {
                 write!(self.out, "uint(")?;
                 self.write_compute_expr(expr, ctx)?;
-                write!(self.out, ".length())")?
+                write!(self.out, "_texture_width * ")?;
+                self.write_compute_expr(expr, ctx)?;
+                write!(self.out, "_texture_height)")?;
             }
             // not supported yet
             Expression::RayQueryGetIntersection { .. } => unreachable!(),

@@ -705,9 +705,6 @@ impl<'a, W: Write> Writer<'a, W> {
         writeln!(self.out)?;
 
         for (handle, global) in self.module.global_variables.iter() {
-            if output_globals.contains(&handle) {
-                continue;
-            }
             match global.space {
                 AddressSpace::Storage { access: _ } => {
                     // let name = global
@@ -716,10 +713,15 @@ impl<'a, W: Write> Writer<'a, W> {
                     //     .ok_or_else(|| Error::Custom("Missing name".into()))?;
                     let global_name = self.get_global_name(handle, global);
 
-                    writeln!(self.out, "uniform sampler2D {global_name};")?;
+                    
                     writeln!(self.out, "uniform uint {global_name}_texture_width;")?;
                     writeln!(self.out, "uniform uint {global_name}_texture_height;")?;
+                    
+                    if output_globals.contains(&handle) {
+                        continue
+                    }
 
+                    writeln!(self.out, "uniform sampler2D {global_name};")?;
                     // self.reflection_names_globals.insert(handle, global_name);
                     input_storage_uniforms.insert(handle, global_name);
                 }
