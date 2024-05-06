@@ -75,6 +75,11 @@ uniform uint gws_z;
         )
     }
 
+    pub fn write_num_work_groups_vec(&mut self, name: &str) -> Result<(), std::fmt::Error> {
+        writeln!(self.out, "    uvec {name} = uvec3(gws_x, gws_y, gws_z);
+        ")
+    }
+
     pub fn write_global_invocation_vec(&mut self, name: &str) -> Result<(), std::fmt::Error> {
         writeln!(
             self.out,
@@ -310,9 +315,16 @@ highp vec4 encode(highp float f) {{
             let stage = self.module.entry_points[ep_index as usize].stage;
             for (index, arg) in func.arguments.iter().enumerate() {
                 if let Binding::BuiltIn(bi) = arg.binding.as_ref().unwrap() {
-                    if bi == &BuiltIn::GlobalInvocationId {
-                        self.write_global_invocation_vec(arg.name.as_ref().unwrap())?;
-                        continue;
+                    match bi {
+                        BuiltIn::GlobalInvocationId => {
+                            self.write_global_invocation_vec(arg.name.as_ref().unwrap())?;
+                            continue;
+                        },
+                        BuiltIn::NumWorkGroups => {
+                            self.write_num_work_groups_vec(arg.name.as_ref().unwrap())?;
+                            continue;
+                        }
+                        _ => {}
                     }
                 }
 
