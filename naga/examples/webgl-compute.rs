@@ -16,7 +16,7 @@ pub fn parse_and_validate_wgsl(
         naga::valid::Capabilities::all(),
     );
 
-    let info = validator.validate(&module)?;
+    let info = validator.validate(&module).unwrap();
 
     Ok((module, info))
 }
@@ -33,10 +33,16 @@ fn main() {
             
             @compute
             @workgroup_size(32)
-            fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+            fn main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(num_workgroups) num_workgroups: vec3<u32>) {
                 if global_id.x >= arrayLength(&out) {
                     return;    
                 }
+
+                var counter = 0.0;
+                for (var i = 0u; i < global_id.x; i++) {
+                    counter += 1.0;
+                }
+
                 // if out is used on the right side: problem at the moment
                 out[global_id.x] = 3.0 * x[global_id.x];
             }

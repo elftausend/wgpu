@@ -43,7 +43,7 @@ impl<'a, W: Write> Writer<'a, W> {
                     if output_global.contains(&global_var_handle) {
                         continue
                     }
-                    
+
                     let global_name = self.get_global_name(global_var_handle, global_var);
                     writeln!(
                         self.out,
@@ -75,7 +75,7 @@ uniform uint gws_z;
         )
     }
 
-    pub fn write_global_invocation_vec(&mut self) -> Result<(), std::fmt::Error> {
+    pub fn write_global_invocation_vec(&mut self, name: &str) -> Result<(), std::fmt::Error> {
         writeln!(
             self.out,
             "
@@ -87,7 +87,7 @@ uniform uint gws_z;
     uint y_idx = (idx / gws_x) % gws_y;
     uint z_idx = (idx / (gws_x * gws_y)) % gws_z;
 
-    uvec3 global_id = uvec3(x_idx, y_idx, z_idx);
+    uvec3 {name} = uvec3(x_idx, y_idx, z_idx);
         "
         )
     }
@@ -311,7 +311,7 @@ highp vec4 encode(highp float f) {{
             for (index, arg) in func.arguments.iter().enumerate() {
                 if let Binding::BuiltIn(bi) = arg.binding.as_ref().unwrap() {
                     if bi == &BuiltIn::GlobalInvocationId {
-                        self.write_global_invocation_vec()?;
+                        self.write_global_invocation_vec(arg.name.as_ref().unwrap())?;
                         continue;
                     }
                 }

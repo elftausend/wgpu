@@ -859,6 +859,7 @@ impl super::Validator {
                         function.expressions[right],
                         right_inner
                     );
+                    
                     return Err(ExpressionError::InvalidBinaryOperandTypes(op, left, right));
                 }
                 ShaderStages::all()
