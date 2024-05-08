@@ -325,7 +325,7 @@ pub struct ReflectionInfo {
     /// List of push constant items in the shader.
     pub push_constant_items: Vec<PushConstantItem>,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ReflectionInfoCompute {
     /// Mapping between input uniform variables and names.
     pub input_storage_uniforms: crate::FastHashMap<Handle<crate::GlobalVariable>, String>,
