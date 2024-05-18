@@ -48,6 +48,41 @@ fn main() {
             }
 
             ";
+    let src = "
+            @group(0)
+            @binding(0)
+            var<storage, read> x: array<f32>;
+
+            @group(0)
+            @binding(1)
+            var<storage, read_write> out: array<f32>;
+            
+            @group(0)
+            @binding(2)
+            var<uniform> add: f32;
+            
+            @group(0)
+            @binding(3)
+            var<uniform> add_another: f32;
+
+            @compute
+            @workgroup_size(32)
+            fn main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(num_workgroups) num_workgroups: vec3<u32>) {
+                if global_id.x >= arrayLength(&out) {
+                    return;    
+                }
+
+                var counter = add;
+                for (var i = 0u; i < global_id.x; i++) {
+                    counter += 1.0;
+                }
+
+                // if out is used on the right side: problem at the moment
+                out[global_id.x] = 3.0 * x[global_id.x] + add_another;
+            }
+
+            ";
+
     let (module, info) = parse_and_validate_wgsl(&src).unwrap();
 
     // 310 is required for compute shaders

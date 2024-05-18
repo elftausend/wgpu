@@ -1,0 +1,141 @@
+#version 310 es
+
+precision highp float;
+precision highp int;
+
+layout(location = 0) out vec4 _group_0_binding_1_cs;
+
+uniform uint _group_0_binding_0_cs_texture_width;
+uniform uint _group_0_binding_0_cs_texture_height;
+uniform sampler2D _group_0_binding_0_cs;
+uniform uint _group_0_binding_1_cs_texture_width;
+uniform uint _group_0_binding_1_cs_texture_height;
+uniform type_block_0Compute { float _group_0_binding_2_cs; };
+uniform type_block_1Compute { float _group_0_binding_3_cs; };
+
+uniform uint thread_viewport_width;
+uniform uint thread_viewport_height;
+
+in vec2 thread_uv;
+
+
+uniform uint gws_x;
+uniform uint gws_y;
+uniform uint gws_z;
+        
+
+vec2 select_from_idx(uint textureWidth, uint textureHeight, uint idx) {
+  float col = float(idx % textureWidth) + 0.5;
+  float row = float(idx / textureWidth) + 0.5;
+  return vec2 (
+    col / float(textureWidth),
+    row / float(textureHeight)
+  );
+}
+        
+
+vec2 int_mod(vec2 x, float y) {
+  vec2 res = floor(mod(x, y));
+  return res * step(1.0 - floor(y), -res);
+}
+
+vec3 int_mod(vec3 x, float y) {
+  vec3 res = floor(mod(x, y));
+  return res * step(1.0 - floor(y), -res);
+}
+
+vec4 int_mod(vec4 x, vec4 y) {
+  vec4 res = floor(mod(x, y));
+  return res * step(1.0 - floor(y), -res);
+}
+
+highp float int_mod(highp float x, highp float y) {
+  highp float res = floor(mod(x, y));
+  return res * (res > floor(y) - 1.0 ? 0.0 : 1.0);
+}
+
+highp int int_mod(highp int x, highp int y) {
+  return int(int_mod(float(x), float(y)));
+}
+
+const vec2 MAGIC_VEC        = vec2(1.0, -256.0);
+const vec4 SCALE_FACTOR     = vec4(1.0, 256.0, 65536.0, 0.0);
+const vec4 SCALE_FACTOR_INV = vec4(1.0, 0.00390625, 0.0000152587890625, 0.0); // 1, 1/256, 1/65536);
+
+highp float decode(highp vec4 rgba) {
+
+  rgba *= 255.0;
+  vec2 gte128;
+  gte128.x = rgba.b >= 128.0 ? 1.0 : 0.0;
+  gte128.y = rgba.a >= 128.0 ? 1.0 : 0.0;
+  float exponent = 2.0 * rgba.a - 127.0 + dot(gte128, MAGIC_VEC);
+  float res = exp2(round(exponent));
+  rgba.b = rgba.b - 128.0 * gte128.x;
+  res = dot(rgba, SCALE_FACTOR) * exp2(round(exponent-23.0)) + res;
+  res *= gte128.y * -2.0 + 1.0;
+  return res;
+}
+
+highp vec4 encode(highp float f) {
+  highp float F = abs(f);
+  highp float sign = f < 0.0 ? 1.0 : 0.0;
+  highp float exponent = floor(log2(F));
+  highp float mantissa = (exp2(-exponent) * F);
+  // exponent += floor(log2(mantissa));
+  vec4 rgba = vec4(F * exp2(23.0-exponent)) * SCALE_FACTOR_INV;
+  rgba.rg = int_mod(rgba.rg, 256.0);
+  rgba.b = int_mod(rgba.b, 128.0);
+  rgba.a = exponent*0.5 + 63.5;
+  rgba.ba += vec2(int_mod(exponent+127.0, 2.0), sign) * 128.0;
+  rgba = floor(rgba);
+  rgba *= 0.003921569; // 1/255
+
+  return rgba;
+}
+        
+
+void main() {
+
+    uint absolute_col = uint(thread_uv.x * float(thread_viewport_width));
+    uint absolute_row = uint(thread_uv.y * float(thread_viewport_height));
+    uint idx = absolute_row * thread_viewport_width + absolute_col;
+
+    uint x_idx = idx % gws_x;
+    uint y_idx = (idx / gws_x) % gws_y;
+    uint z_idx = (idx / (gws_x * gws_y)) % gws_z;
+
+    uvec3 global_id = uvec3(x_idx, y_idx, z_idx);
+        
+    uvec num_workgroups = uvec3(gws_x, gws_y, gws_z);
+        
+    float counter = 0.0;
+    uint i = 0u;
+    if ((global_id.x >= uint(_group_0_binding_1_cs_texture_width * _group_0_binding_1_cs_texture_height))) {
+        return;
+    }
+    float _e7 = _group_0_binding_2_cs;
+    counter = _e7;
+    bool loop_init = true;
+    while(true) {
+        if (!loop_init) {
+            uint _e18 = i;
+            i = (_e18 + 1u);
+        }
+        loop_init = false;
+        uint _e11 = i;
+        if ((_e11 < global_id.x)) {
+        } else {
+            break;
+        }
+        {
+            float _e15 = counter;
+            counter = (_e15 + 1.0);
+        }
+    }
+    float _e26 = decode( texture( _group_0_binding_0_cs, select_from_idx( _group_0_binding_0_cs_texture_width, _group_0_binding_0_cs_texture_height, global_id.x )));
+    float _e30 = _group_0_binding_3_cs;
+    _group_0_binding_1_cs.r = ((3.0 * _e26) + _e30);
+    _group_0_binding_1_cs = encode( _group_0_binding_1_cs.r );
+    return;
+}
+

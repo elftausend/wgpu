@@ -41,7 +41,7 @@ impl<'a, W: Write> Writer<'a, W> {
                         continue;
                     };
                     if output_global.contains(&global_var_handle) {
-                        continue
+                        continue;
                     }
 
                     let global_name = self.get_global_name(global_var_handle, global_var);
@@ -76,8 +76,11 @@ uniform uint gws_z;
     }
 
     pub fn write_num_work_groups_vec(&mut self, name: &str) -> Result<(), std::fmt::Error> {
-        writeln!(self.out, "    uvec {name} = uvec3(gws_x, gws_y, gws_z);
-        ")
+        writeln!(
+            self.out,
+            "    uvec {name} = uvec3(gws_x, gws_y, gws_z);
+        "
+        )
     }
 
     pub fn write_global_invocation_vec(&mut self, name: &str) -> Result<(), std::fmt::Error> {
@@ -319,7 +322,7 @@ highp vec4 encode(highp float f) {{
                         BuiltIn::GlobalInvocationId => {
                             self.write_global_invocation_vec(arg.name.as_ref().unwrap())?;
                             continue;
-                        },
+                        }
                         BuiltIn::NumWorkGroups => {
                             self.write_num_work_groups_vec(arg.name.as_ref().unwrap())?;
                             continue;
@@ -401,7 +404,7 @@ highp vec4 encode(highp float f) {{
         // Write the function body (statement list)
         for (idx, sta) in func.body.iter().enumerate() {
             if let back::FunctionType::EntryPoint(_) = ctx.ty {
-                if idx == func.body.len()-1 {
+                if idx == func.body.len() - 1 {
                     for output_global_handle in output_globals {
                         let global_var = &self.module.global_variables[*output_global_handle];
                         let name = self.get_global_name(*output_global_handle, global_var);
