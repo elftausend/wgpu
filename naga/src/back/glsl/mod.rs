@@ -727,10 +727,10 @@ impl<'a, W: Write> Writer<'a, W> {
                     input_storage_uniforms.insert(handle, global_name);
                 }
                 AddressSpace::Uniform => {
+                    self.write_global(handle, global)?;
                     let global_name = self.get_global_name(handle, global);
                     let block_name = self.reflection_names_globals[&handle].clone();
                     other_uniforms.insert(handle, (block_name, global_name));
-                    self.write_global(handle, global)?;
                 }
                 _ => {
                     self.write_global(handle, global)?;
