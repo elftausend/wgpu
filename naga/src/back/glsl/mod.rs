@@ -329,6 +329,7 @@ pub struct ReflectionInfo {
 pub struct ReflectionInfoCompute {
     /// Mapping between input uniform variables and names.
     pub input_storage_uniforms: crate::FastHashMap<Handle<crate::GlobalVariable>, String>,
+    pub other_uniforms: crate::FastHashMap<Handle<crate::GlobalVariable>, String>,
     /// Mapping between output uniform variables and names.
     pub outputs: crate::FastHashMap<Handle<crate::GlobalVariable>, String>,
 }
@@ -700,6 +701,7 @@ impl<'a, W: Write> Writer<'a, W> {
 
         let mut output_globals = Vec::new();
         let mut input_storage_uniforms = FxHashMap::default();
+        let mut other_uniforms = FxHashMap::default();
 
         self.write_outputs(&self.entry_point.function, &mut output_globals)?;
         writeln!(self.out)?;
@@ -723,6 +725,11 @@ impl<'a, W: Write> Writer<'a, W> {
                     writeln!(self.out, "uniform sampler2D {global_name};")?;
                     // self.reflection_names_globals.insert(handle, global_name);
                     input_storage_uniforms.insert(handle, global_name);
+                }
+                AddressSpace::Uniform => {
+                    let global_name = self.get_global_name(handle, global);
+                    other_uniforms.insert(handle, global_name);
+                    self.write_global(handle, global)?;
                 }
                 _ => {
                     self.write_global(handle, global)?;
@@ -806,6 +813,7 @@ impl<'a, W: Write> Writer<'a, W> {
                     )
                 })
                 .collect(),
+            other_uniforms,
         })
     }
 
