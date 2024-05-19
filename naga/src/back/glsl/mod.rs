@@ -329,7 +329,7 @@ pub struct ReflectionInfo {
 pub struct ReflectionInfoCompute {
     /// Mapping between input uniform variables and names.
     pub input_storage_uniforms: crate::FastHashMap<Handle<crate::GlobalVariable>, String>,
-    pub other_uniforms: crate::FastHashMap<Handle<crate::GlobalVariable>, String>,
+    pub other_uniforms: crate::FastHashMap<Handle<crate::GlobalVariable>, (String, String)>,
     /// Mapping between output uniform variables and names.
     pub outputs: crate::FastHashMap<Handle<crate::GlobalVariable>, String>,
 }
@@ -728,7 +728,8 @@ impl<'a, W: Write> Writer<'a, W> {
                 }
                 AddressSpace::Uniform => {
                     let global_name = self.get_global_name(handle, global);
-                    other_uniforms.insert(handle, global_name);
+                    let block_name = self.reflection_names_globals[&handle].clone();
+                    other_uniforms.insert(handle, (block_name, global_name));
                     self.write_global(handle, global)?;
                 }
                 _ => {
