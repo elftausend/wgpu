@@ -85,17 +85,26 @@ impl<'a, W: Write> Writer<'a, W> {
             Expression::Access { base, index } => {
                 dbg!(&ctx.expressions[base]);
                 dbg!(&ctx.expressions[index]);
-
-                write!(self.out, "decode( texture( ")?;
+                
+                write!(self.out, "decode( texelFetch( ")?;
                 self.write_compute_expr(base, ctx)?;
-                write!(self.out, ", select_from_idx( ")?;
+                write!(self.out, ", select_from_idx_int( ")?;
                 self.write_compute_expr(base, ctx)?;
                 write!(self.out, "_texture_width, ")?;
 
-                self.write_compute_expr(base, ctx)?;
-                write!(self.out, "_texture_height, ")?;
                 self.write_compute_expr(index, ctx)?;
-                write!(self.out, " )))")?;
+                write!(self.out, " ), 0))")?;
+
+                // write!(self.out, "decode( texture( ")?;
+                // self.write_compute_expr(base, ctx)?;
+                // write!(self.out, ", select_from_idx( ")?;
+                // self.write_compute_expr(base, ctx)?;
+                // write!(self.out, "_texture_width, ")?;
+
+                // self.write_compute_expr(base, ctx)?;
+                // write!(self.out, "_texture_height, ")?;
+                // self.write_compute_expr(index, ctx)?;
+                // write!(self.out, " )))")?;
             }
             // `AccessIndex` is the same as `Access` except that the index is a constant and it can
             // be applied to structs, in this case we need to find the name of the field at that

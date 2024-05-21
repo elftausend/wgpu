@@ -10,8 +10,8 @@ uniform uint _group_0_binding_0_cs_texture_height;
 uniform sampler2D _group_0_binding_0_cs;
 uniform uint _group_0_binding_1_cs_texture_width;
 uniform uint _group_0_binding_1_cs_texture_height;
-uniform type_block_0Compute { float _group_0_binding_2_cs; };
-uniform type_block_1Compute { float _group_0_binding_3_cs; };
+uniform float _group_0_binding_2_cs;
+uniform float _group_0_binding_3_cs;
 
 uniform uint thread_viewport_width;
 uniform uint thread_viewport_height;
@@ -25,12 +25,18 @@ uniform uint gws_z;
         
 
 vec2 select_from_idx(uint textureWidth, uint textureHeight, uint idx) {
-  float col = float(idx % textureWidth) + 0.5;
+  float col = (idx % textureWidth) + 0.5;
   float row = float(idx / textureWidth) + 0.5;
   return vec2 (
     col / float(textureWidth),
     row / float(textureHeight)
   );
+}
+
+ivec2 select_from_idx_int(uint textureWidth, uint idx) {
+  uint col = idx % textureWidth;
+  uint row = idx / textureWidth;
+  return ivec2 (int(col), int(row));
 }
         
 
@@ -132,7 +138,7 @@ void main() {
             counter = (_e15 + 1.0);
         }
     }
-    float _e26 = decode( texture( _group_0_binding_0_cs, select_from_idx( _group_0_binding_0_cs_texture_width, _group_0_binding_0_cs_texture_height, global_id.x )));
+    float _e26 = decode( texelFetch( _group_0_binding_0_cs, select_from_idx_int( _group_0_binding_0_cs_texture_width, global_id.x ), 0));
     float _e30 = _group_0_binding_3_cs;
     _group_0_binding_1_cs.r = ((3.0 * _e26) + _e30);
     _group_0_binding_1_cs = encode( _group_0_binding_1_cs.r );

@@ -114,6 +114,12 @@ vec2 select_from_idx(uint textureWidth, uint textureHeight, uint idx) {{
     row / float(textureHeight)
   );
 }}
+
+ivec2 select_from_idx_int(uint textureWidth, uint idx) {{
+  uint col = idx % textureWidth;
+  uint row = idx / textureWidth;
+  return ivec2 (int(col), int(row));
+}}
         "
         )
     }
