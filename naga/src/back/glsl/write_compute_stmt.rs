@@ -18,7 +18,6 @@ impl<'a, W: Write> Writer<'a, W> {
         level: back::Level,
     ) -> BackendResult {
         use crate::Statement;
-        println!("statement: {sta:?}");
         match *sta {
             // This is where we can generate intermediate constants for some expression types.
             Statement::Emit(ref range) => {
@@ -63,7 +62,6 @@ impl<'a, W: Write> Writer<'a, W> {
                     }
 
                     if let Some(name) = expr_name {
-                        println!("write named: {name:?}");
                         write!(self.out, "{level}")?;
                         self.write_named_compute_expr(handle, name, handle, ctx)?;
                     }

@@ -7,11 +7,9 @@ layout(location = 0) out vec4 _group_0_binding_1_cs;
 
 uniform uint _group_0_binding_0_cs_texture_width;
 uniform uint _group_0_binding_0_cs_texture_height;
-uniform sampler2D _group_0_binding_0_cs;
+uniform usampler2D _group_0_binding_0_cs;
 uniform uint _group_0_binding_1_cs_texture_width;
 uniform uint _group_0_binding_1_cs_texture_height;
-uniform float _group_0_binding_2_cs;
-uniform float _group_0_binding_3_cs;
 
 uniform uint thread_viewport_width;
 uniform uint thread_viewport_height;
@@ -25,7 +23,7 @@ uniform uint gws_z;
         
 
 vec2 select_from_idx(uint textureWidth, uint textureHeight, uint idx) {
-  float col = (idx % textureWidth) + 0.5;
+  float col = float(idx % textureWidth) + 0.5;
   float row = float(idx / textureWidth) + 0.5;
   return vec2 (
     col / float(textureWidth),
@@ -114,34 +112,12 @@ void main() {
         
     uvec num_workgroups = uvec3(gws_x, gws_y, gws_z);
         
-    float counter = 0.0;
-    uint i = 0u;
     if ((global_id.x >= uint(_group_0_binding_1_cs_texture_width * _group_0_binding_1_cs_texture_height))) {
         return;
     }
-    float _e7 = _group_0_binding_2_cs;
-    counter = _e7;
-    bool loop_init = true;
-    while(true) {
-        if (!loop_init) {
-            uint _e18 = i;
-            i = (_e18 + 1u);
-        }
-        loop_init = false;
-        uint _e11 = i;
-        if ((_e11 < global_id.x)) {
-        } else {
-            break;
-        }
-        {
-            float _e15 = counter;
-            counter = (_e15 + 1.0);
-        }
-    }
-    float _e26 = decode( texelFetch( _group_0_binding_0_cs, select_from_idx_int( _group_0_binding_0_cs_texture_width, global_id.x ), 0));
-    float _e30 = _group_0_binding_3_cs;
-    _group_0_binding_1_cs.r = ((3.0 * _e26) + _e30);
-    _group_0_binding_1_cs = encode( _group_0_binding_1_cs.r );
+    uint _e12 = udecode( texelFetch( _group_0_binding_0_cs, select_from_idx_int( _group_0_binding_0_cs_texture_width, global_id.x ), 0));
+    _group_0_binding_1_cs.r = _e12;
+    _group_0_binding_1_cs = uencode( _group_0_binding_1_cs.r );
     return;
 }
 

@@ -51,6 +51,25 @@ fn main() {
     let src = "
             @group(0)
             @binding(0)
+            var<storage, read> x: array<u32>;
+
+            @group(0)
+            @binding(1)
+            var<storage, read_write> out: array<u32>;
+            
+            @compute
+            @workgroup_size(32)
+            fn main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(num_workgroups) num_workgroups: vec3<u32>) {
+                if global_id.x >= arrayLength(&out) {
+                    return;    
+                }
+                out[global_id.x] = x[global_id.x];
+            }
+
+            ";
+    let _src = "
+            @group(0)
+            @binding(0)
             var<storage, read> x: array<f32>;
 
             @group(0)

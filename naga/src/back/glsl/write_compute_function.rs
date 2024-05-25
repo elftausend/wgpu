@@ -413,9 +413,17 @@ highp vec4 encode(highp float f) {{
                 if idx == func.body.len() - 1 {
                     for output_global_handle in output_globals {
                         let global_var = &self.module.global_variables[*output_global_handle];
+                        let Some(datatype_prefix) = self
+                            .extract_data_type_prefix_from_array(&self.module.types[global_var.ty])
+                            .map(|prefix| prefix.to_string())
+                        else {
+                            return Err(super::Error::Custom(
+                                "Unsupported datatype in global variable".into(),
+                            ));
+                        };
                         let name = self.get_global_name(*output_global_handle, global_var);
                         write!(self.out, "{}", back::Level(1))?;
-                        writeln!(self.out, "{name} = encode( {name}.r );")?;
+                        writeln!(self.out, "{name} = {datatype_prefix}encode( {name}.r );")?;
                     }
                     self.write_compute_stmt(sta, &ctx, back::Level(1))?;
                     continue;

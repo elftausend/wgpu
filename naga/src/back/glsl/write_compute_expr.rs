@@ -22,7 +22,6 @@ impl<'a, W: Write> Writer<'a, W> {
         named: Handle<crate::Expression>,
         ctx: &back::FunctionCtx,
     ) -> BackendResult {
-        dbg!("called named cer");
         match ctx.info[named].ty {
             proc::TypeResolution::Handle(ty_handle) => match self.module.types[ty_handle].inner {
                 TypeInner::Struct { .. } => {
@@ -83,10 +82,19 @@ impl<'a, W: Write> Writer<'a, W> {
             Expression::Override(_) => return Err(Error::Override),
             // `Access` is applied to arrays, vectors and matrices and is written as indexing
             Expression::Access { base, index } => {
-                dbg!(&ctx.expressions[base]);
-                dbg!(&ctx.expressions[index]);
-                
-                write!(self.out, "decode( texelFetch( ")?;
+                let Expression::GlobalVariable(global_var_handle) = &ctx.expressions[base] else {
+                    return Err(Error::Custom("Access to var is not a global var".into()));
+                };
+                let global = &self.module.global_variables[*global_var_handle];
+                let ty = &self.module.types[global.ty];
+                let Some(data_type_prefix) = self
+                    .extract_data_type_prefix_from_array(ty)
+                    .map(|prefix| prefix.to_string())
+                else {
+                    return Err(Error::Custom("invalid data type".into()));
+                };
+
+                write!(self.out, "{data_type_prefix}decode( texelFetch( ")?;
                 self.write_compute_expr(base, ctx)?;
                 write!(self.out, ", select_from_idx_int( ")?;
                 self.write_compute_expr(base, ctx)?;
@@ -110,7 +118,6 @@ impl<'a, W: Write> Writer<'a, W> {
             // be applied to structs, in this case we need to find the name of the field at that
             // index and write `base.field_name`
             Expression::AccessIndex { base, index } => {
-                dbg!(&ctx.expressions[base]);
                 self.write_compute_expr(base, ctx)?;
 
                 let base_ty_res = &ctx.info[base].ty;
@@ -122,8 +129,6 @@ impl<'a, W: Write> Writer<'a, W> {
                     }
                     _ => base_ty_res.handle(),
                 };
-
-                dbg!(resolved);
 
                 match *resolved {
                     TypeInner::Vector { .. } => {

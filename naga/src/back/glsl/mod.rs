@@ -49,7 +49,7 @@ use rustc_hash::FxHashMap;
 use crate::{
     back,
     proc::{self, NameKey},
-    valid, AddressSpace, Handle, ShaderStage, TypeInner,
+    valid, AddressSpace, Handle, ShaderStage, Type, TypeInner,
 };
 use features::FeaturesManager;
 use std::{
@@ -709,6 +709,15 @@ impl<'a, W: Write> Writer<'a, W> {
         for (handle, global) in self.module.global_variables.iter() {
             match global.space {
                 AddressSpace::Storage { access: _ } => {
+                    let ty = &self.module.types[global.ty];
+
+                    let Some(data_type_prefix) = self
+                        .extract_data_type_prefix_from_array(ty)
+                        .map(|prefix| prefix.to_string())
+                    else {
+                        continue;
+                    };
+
                     // let name = global
                     //     .name
                     //     .as_ref()
@@ -722,7 +731,10 @@ impl<'a, W: Write> Writer<'a, W> {
                         continue;
                     }
 
-                    writeln!(self.out, "uniform sampler2D {global_name};")?;
+                    writeln!(
+                        self.out,
+                        "uniform {data_type_prefix}sampler2D {global_name};"
+                    )?;
                     // self.reflection_names_globals.insert(handle, global_name);
                     input_storage_uniforms.insert(handle, global_name);
                 }
@@ -819,6 +831,29 @@ impl<'a, W: Write> Writer<'a, W> {
                 })
                 .collect(),
             other_uniforms,
+        })
+    }
+
+    pub fn extract_data_type_prefix_from_array(&self, ty: &Type) -> Option<&str> {
+        let TypeInner::Array {
+            base,
+            size: _,
+            stride: _,
+        } = ty.inner
+        else {
+            return None;
+        };
+        let data_ty = &self.module.types[base];
+
+        let TypeInner::Scalar(data_ty) = data_ty.inner else {
+            return None;
+        };
+
+        Some(match data_ty.kind {
+            crate::ScalarKind::Sint => "i",
+            crate::ScalarKind::Uint => "u",
+            crate::ScalarKind::Float => "",
+            _ => return None,
         })
     }
 
@@ -2152,7 +2187,6 @@ impl<'a, W: Write> Writer<'a, W> {
         level: back::Level,
     ) -> BackendResult {
         use crate::Statement;
-        println!("statement: {sta:?}");
         match *sta {
             // This is where we can generate intermediate constants for some expression types.
             Statement::Emit(ref range) => {
