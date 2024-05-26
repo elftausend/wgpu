@@ -159,18 +159,17 @@ const vec4 SCALE_FACTOR     = vec4(1.0, 256.0, 65536.0, 0.0);
 const vec4 SCALE_FACTOR_INV = vec4(1.0, 0.00390625, 0.0000152587890625, 0.0); // 1, 1/256, 1/65536);
 
 highp uint udecode(uvec4 rgba) {{
-    // rgba.r = rgba.r << 24u;  
-    // rgba.g = rgba.g << 16u;  
-    // rgba.b = rgba.b << 8u;
-    // return rgba.r + rgba.g + rgba.b + rgba.a;
-    return 40u;
+    rgba.a = rgba.a << 24u;  
+    rgba.b = rgba.b << 16u;  
+    rgba.g = rgba.g << 8u;
+    return rgba.a + rgba.b + rgba.g + rgba.r;
 }}
 
 uvec4 uencode(highp uint rgba) {{
-    uint r = rgba | (255u << 24u);
-    uint g = rgba | (255u << 16u);
-    uint b = rgba | (255u << 8u);
-    uint a = rgba | 255u;
+    uint a = (rgba & (0xFF000000u)) >> 24u;
+    uint b = (rgba & (0x00FF0000u)) >> 16u;
+    uint g = (rgba & (0x0000FF00u)) >> 8u;
+    uint r = rgba & 255u;
     return uvec4(r, g, b, a);
 }}
 
