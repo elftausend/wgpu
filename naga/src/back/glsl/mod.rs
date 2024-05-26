@@ -704,7 +704,7 @@ impl<'a, W: Write> Writer<'a, W> {
         let mut input_storage_uniforms = FxHashMap::default();
         let mut other_uniforms = FxHashMap::default();
 
-        self.write_outputs(&self.entry_point.function)?;
+        self.write_outputs(&self.entry_point.function, &self.entry_point.function.body)?;
         writeln!(self.out)?;
 
         for (handle, global) in self.module.global_variables.iter() {

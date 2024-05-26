@@ -3,13 +3,17 @@
 precision highp float;
 precision highp int;
 
-layout(location = 0) out vec4 _group_0_binding_1_cs;
 
 uniform uint _group_0_binding_0_cs_texture_width;
 uniform uint _group_0_binding_0_cs_texture_height;
-uniform usampler2D _group_0_binding_0_cs;
+uniform highp usampler2D _group_0_binding_0_cs;
 uniform uint _group_0_binding_1_cs_texture_width;
 uniform uint _group_0_binding_1_cs_texture_height;
+uniform highp usampler2D _group_0_binding_1_cs;
+uniform uint _group_0_binding_2_cs_texture_width;
+uniform uint _group_0_binding_2_cs_texture_height;
+uniform highp usampler2D _group_0_binding_2_cs;
+uniform uint _group_0_binding_3_cs;
 
 uniform uint thread_viewport_width;
 uniform uint thread_viewport_height;
@@ -66,18 +70,18 @@ const vec2 MAGIC_VEC        = vec2(1.0, -256.0);
 const vec4 SCALE_FACTOR     = vec4(1.0, 256.0, 65536.0, 0.0);
 const vec4 SCALE_FACTOR_INV = vec4(1.0, 0.00390625, 0.0000152587890625, 0.0); // 1, 1/256, 1/65536);
 
-uint udecode(uvec4 rgba) {
-    rgba.r = rgba.r << 24;  
-    rgba.g = rgba.g << 16;  
-    rgba.b = rgba.b << 8;
-    return rgba.r + rgba.g + rgba.b + rgba.a;
+highp uint udecode(uvec4 rgba) {
+    rgba.a = rgba.a << 24u;  
+    rgba.b = rgba.b << 16u;  
+    rgba.g = rgba.g << 8u;
+    return rgba.a + rgba.b + rgba.g + rgba.r;
 }
 
-uvec4 uencode(uint rgba) {
-    uint r = rgba | (255 << 24);
-    uint g = rgba | (255 << 16);
-    uint b = rgba | (255 << 8);
-    uint a = rgba | 255;
+uvec4 uencode(highp uint rgba) {
+    uint a = (rgba & (0xFF000000u)) >> 24u;
+    uint b = (rgba & (0x00FF0000u)) >> 16u;
+    uint g = (rgba & (0x0000FF00u)) >> 8u;
+    uint r = rgba & 255u;
     return uvec4(r, g, b, a);
 }
 
@@ -125,14 +129,51 @@ void main() {
 
     uvec3 global_id = uvec3(x_idx, y_idx, z_idx);
         
-    uvec num_workgroups = uvec3(gws_x, gws_y, gws_z);
-        
-    if ((global_id.x >= uint(_group_0_binding_1_cs_texture_width * _group_0_binding_1_cs_texture_height))) {
+    uint out_idx = 0u;
+    uint current_label = 0u;
+    uint link_idx = 0u;
+    uint link_x = 0u;
+    uint link_y = 0u;
+    uint link_z = 0u;
+    uint link_w = 0u;
+    uint root_candidate_label = 0u;
+    uint _e3 = _group_0_binding_3_cs;
+    out_idx = ((global_id.y * _e3) + global_id.x);
+    uint _e8 = out_idx;
+    if ((_e8 >= uint(_group_0_binding_2_cs_texture_width * _group_0_binding_2_cs_texture_height))) {
         return;
     }
-    uint _e12 = udecode( texelFetch( _group_0_binding_0_cs, select_from_idx_int( _group_0_binding_0_cs_texture_width, global_id.x ), 0));
-    _group_0_binding_1_cs.r = _e12;
-    _group_0_binding_1_cs = uencode( _group_0_binding_1_cs.r );
-    return;
+    uint _e13 = out_idx;
+    uint _e15 = udecode( texelFetch( _group_0_binding_0_cs, select_from_idx_int( _group_0_binding_0_cs_texture_width, _e13 ), 0));
+    current_label = _e15;
+    uint _e19 = _group_0_binding_3_cs;
+    link_idx = (((global_id.y * _e19) * 4u) + (global_id.x * 4u));
+    uint _e29 = link_idx;
+    uint _e31 = udecode( texelFetch( _group_0_binding_1_cs, select_from_idx_int( _group_0_binding_1_cs_texture_width, _e29 ), 0));
+    link_x = _e31;
+    uint _e34 = link_idx;
+    uint _e38 = udecode( texelFetch( _group_0_binding_1_cs, select_from_idx_int( _group_0_binding_1_cs_texture_width, (_e34 + 1u) ), 0));
+    link_y = _e38;
+    uint _e41 = link_idx;
+    uint _e45 = udecode( texelFetch( _group_0_binding_1_cs, select_from_idx_int( _group_0_binding_1_cs_texture_width, (_e41 + 2u) ), 0));
+    link_z = _e45;
+    uint _e48 = link_idx;
+    uint _e52 = udecode( texelFetch( _group_0_binding_1_cs, select_from_idx_int( _group_0_binding_1_cs_texture_width, (_e48 + 3u) ), 0));
+    link_w = _e52;
+    uint _e54 = link_x;
+    uint _e57 = link_y;
+    if (((_e54 == 0u) && (_e57 == 0u))) {
+        uint _e62 = current_label;
+        root_candidate_label = (2147483648u | _e62);
+        uint _e66 = out_idx;
+        uint _e68 = root_candidate_label;
+        _group_0_binding_2_cs.r = _e68;
+        return;
+    } else {
+        uint _e70 = out_idx;
+        uint _e72 = current_label;
+        _group_0_binding_2_cs.r = _e72;
+        return;
+    }
 }
 

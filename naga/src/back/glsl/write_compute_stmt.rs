@@ -253,7 +253,7 @@ impl<'a, W: Write> Writer<'a, W> {
                             };
                             let name = self.get_global_name(*output_global_handle, global_var);
                             writeln!(self.out, "{name} = {datatype_prefix}encode( {name}.r );")?;
-                            write!(self.out, "{}", level)?;
+                            write!(self.out, "{level}")?;
                         }
 
                         // let ep = &self.module.entry_points[ep_index as usize];

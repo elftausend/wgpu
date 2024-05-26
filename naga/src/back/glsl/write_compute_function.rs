@@ -1,9 +1,7 @@
 use std::{collections::HashSet, fmt::Write};
 
 use crate::{
-    back,
-    proc::{NameKey, TypeResolution},
-    valid, Arena, Binding, BuiltIn, Expression, GlobalVariable, Handle, Statement, TypeInner,
+    back, proc::{NameKey, TypeResolution}, valid, Arena, Binding, Block, BuiltIn, Expression, GlobalVariable, Handle, Statement, TypeInner
 };
 
 use super::{
@@ -27,9 +25,25 @@ impl<'a, W: Write> Writer<'a, W> {
         let global_var = &self.module.global_variables[*global_var_handle];
         Some((*global_var_handle, global_var))
     }
-    pub fn write_outputs(&mut self, func: &crate::Function) -> Result<(), std::fmt::Error> {
-        for stmt in self.entry_point.function.body.iter() {
+    pub fn write_outputs(&mut self, func: &crate::Function, block: &Block) -> Result<(), std::fmt::Error> {
+        for stmt in block.iter() {
             match stmt {
+                Statement::Block(block) => {
+                    self.write_outputs(func, block)?
+                }
+                Statement::If { condition: _, accept, reject } => {
+                    self.write_outputs(func, accept)?;
+                    self.write_outputs(func, reject)?;
+                }
+                Statement::Loop { body, continuing, break_if: _ } => {
+                    self.write_outputs(func, body)?;
+                    self.write_outputs(func, continuing)?;
+                }
+                Statement::Switch { selector: _, cases } => {
+                    for case in cases {
+                        self.write_outputs(func, &case.body)?
+                    }
+                }
                 Statement::Store { pointer, value: _ } => {
                     let Some((global_var_handle, global_var)) =
                         self.extract_global_variable(&func.expressions, *pointer)

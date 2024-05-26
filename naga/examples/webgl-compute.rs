@@ -102,6 +102,42 @@ fn main() {
 
             ";
 
+            let src = "
+            @group(0) @binding(0)
+            var<storage, read_write> labels: array<u32>;
+            
+            @group(0) @binding(1)
+            var<storage, read_write> links: array<u32>;
+    
+            @group(0) @binding(2)
+            var<storage, read_write> classified_labels: array<u32>;
+            
+            @group(0) @binding(3)
+            var<uniform> width: u32;
+            
+            @compute
+            @workgroup_size(32)
+            fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+                var out_idx = global_id.y * width + global_id.x; 
+                if out_idx >= arrayLength(&classified_labels) {
+                    return;
+                }
+                var current_label = labels[out_idx];
+                var link_idx = global_id.y * width * 4u + global_id.x * 4u; 
+                var link_x = links[link_idx];
+                var link_y = links[link_idx + 1];
+                var link_z = links[link_idx + 2];
+                var link_w = links[link_idx + 3];
+    
+                if link_x == 0 && link_y == 0 {
+                    var root_candidate_label = (1u << 31u) | current_label;
+                    classified_labels[out_idx] = root_candidate_label;
+                } else {
+                    classified_labels[out_idx] = current_label;
+                }
+            }
+        ";
+
     let (module, info) = parse_and_validate_wgsl(&src).unwrap();
 
     // 310 is required for compute shaders
