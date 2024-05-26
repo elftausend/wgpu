@@ -565,6 +565,7 @@ pub struct Writer<'a, W> {
     multiview: Option<std::num::NonZeroU32>,
     /// Mapping of varying variables to their location. Needed for reflections.
     varying: crate::FastHashMap<String, VaryingLocation>,
+    output_globals: Vec<Handle<crate::GlobalVariable>>,
 }
 
 impl<'a, W: Write> Writer<'a, W> {
@@ -636,6 +637,7 @@ impl<'a, W: Write> Writer<'a, W> {
             named_expressions: Default::default(),
             need_bake_expressions: Default::default(),
             varying: Default::default(),
+            output_globals: Default::default(),
         };
 
         // Find all features required to print this module
@@ -699,11 +701,10 @@ impl<'a, W: Write> Writer<'a, W> {
             .contains(WriterFlags::INCLUDE_UNUSED_ITEMS);
         println!("{:?}", self.module.global_variables);
 
-        let mut output_globals = Vec::new();
         let mut input_storage_uniforms = FxHashMap::default();
         let mut other_uniforms = FxHashMap::default();
 
-        self.write_outputs(&self.entry_point.function, &mut output_globals)?;
+        self.write_outputs(&self.entry_point.function)?;
         writeln!(self.out)?;
 
         for (handle, global) in self.module.global_variables.iter() {
@@ -727,7 +728,7 @@ impl<'a, W: Write> Writer<'a, W> {
                     writeln!(self.out, "uniform uint {global_name}_texture_width;")?;
                     writeln!(self.out, "uniform uint {global_name}_texture_height;")?;
 
-                    if output_globals.contains(&handle) {
+                    if self.output_globals.contains(&handle) {
                         continue;
                     }
 
@@ -794,12 +795,7 @@ impl<'a, W: Write> Writer<'a, W> {
             }
 
             // Write the function
-            self.write_compute_function(
-                back::FunctionType::Function(handle),
-                function,
-                fun_info,
-                &output_globals,
-            )?;
+            self.write_compute_function(back::FunctionType::Function(handle), function, fun_info)?;
 
             writeln!(self.out)?;
         }
@@ -808,7 +804,6 @@ impl<'a, W: Write> Writer<'a, W> {
             back::FunctionType::EntryPoint(self.entry_point_idx),
             &self.entry_point.function,
             ep_info,
-            &output_globals,
         )?;
 
         // Add newline at the end of file
@@ -818,7 +813,8 @@ impl<'a, W: Write> Writer<'a, W> {
         // TODO: should add a seperate method
         Ok(ReflectionInfoCompute {
             input_storage_uniforms,
-            outputs: output_globals
+            outputs: self
+                .output_globals
                 .iter()
                 .map(|output_handle| {
                     (

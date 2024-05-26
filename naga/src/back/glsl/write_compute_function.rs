@@ -27,11 +27,7 @@ impl<'a, W: Write> Writer<'a, W> {
         let global_var = &self.module.global_variables[*global_var_handle];
         Some((*global_var_handle, global_var))
     }
-    pub fn write_outputs(
-        &mut self,
-        func: &crate::Function,
-        output_global: &mut Vec<Handle<GlobalVariable>>,
-    ) -> Result<(), std::fmt::Error> {
+    pub fn write_outputs(&mut self, func: &crate::Function) -> Result<(), std::fmt::Error> {
         for stmt in self.entry_point.function.body.iter() {
             match stmt {
                 Statement::Store { pointer, value: _ } => {
@@ -40,20 +36,23 @@ impl<'a, W: Write> Writer<'a, W> {
                     else {
                         continue;
                     };
-                    if output_global.contains(&global_var_handle) {
+                    if self.output_globals.contains(&global_var_handle) {
                         continue;
                     }
 
                     // TODO: convert to error
-                    let datatype_prefix = self.extract_data_type_prefix_from_array(&self.module.types[global_var.ty]).unwrap().to_string();
+                    let datatype_prefix = self
+                        .extract_data_type_prefix_from_array(&self.module.types[global_var.ty])
+                        .unwrap()
+                        .to_string();
 
                     let global_name = self.get_global_name(global_var_handle, global_var);
                     writeln!(
                         self.out,
                         "layout(location = {}) out {datatype_prefix}vec4 {global_name};",
-                        output_global.len()
+                        self.output_globals.len()
                     )?;
-                    output_global.push(global_var_handle);
+                    self.output_globals.push(global_var_handle);
                     // dbg!(global_var);
                     // if let TypeResolution::Value(TypeInner::Pointer { base, space }) = out {
                     //     &self.module.global_variables[*base];
@@ -212,7 +211,6 @@ highp vec4 encode(highp float f) {{
         ty: back::FunctionType,
         func: &crate::Function,
         info: &valid::FunctionInfo,
-        output_globals: &Vec<Handle<GlobalVariable>>,
     ) -> BackendResult {
         // Create a function context for the function being written
         let ctx = back::FunctionCtx {
@@ -427,27 +425,6 @@ highp vec4 encode(highp float f) {{
 
         // Write the function body (statement list)
         for (idx, sta) in func.body.iter().enumerate() {
-            if let back::FunctionType::EntryPoint(_) = ctx.ty {
-                if idx == func.body.len() - 1 {
-                    for output_global_handle in output_globals {
-                        let global_var = &self.module.global_variables[*output_global_handle];
-                        let Some(datatype_prefix) = self
-                            .extract_data_type_prefix_from_array(&self.module.types[global_var.ty])
-                            .map(|prefix| prefix.to_string())
-                        else {
-                            return Err(super::Error::Custom(
-                                "Unsupported datatype in global variable".into(),
-                            ));
-                        };
-                        let name = self.get_global_name(*output_global_handle, global_var);
-                        write!(self.out, "{}", back::Level(1))?;
-                        writeln!(self.out, "{name} = {datatype_prefix}encode( {name}.r );")?;
-                    }
-                    self.write_compute_stmt(sta, &ctx, back::Level(1))?;
-                    continue;
-                }
-            }
-
             // Write a statement, the indentation should always be 1 when writing the function body
             // `write_stmt` adds a newline
             self.write_compute_stmt(sta, &ctx, back::Level(1))?;

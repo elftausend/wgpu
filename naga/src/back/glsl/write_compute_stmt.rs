@@ -239,6 +239,23 @@ impl<'a, W: Write> Writer<'a, W> {
                         writeln!(self.out, ";")?;
                     }
                     back::FunctionType::EntryPoint(ep_index) => {
+                        for output_global_handle in &self.output_globals {
+                            let global_var = &self.module.global_variables[*output_global_handle];
+                            let Some(datatype_prefix) = self
+                                .extract_data_type_prefix_from_array(
+                                    &self.module.types[global_var.ty],
+                                )
+                                .map(|prefix| prefix.to_string())
+                            else {
+                                return Err(Error::Custom(
+                                    "Unsupported datatype in global variable".into(),
+                                ));
+                            };
+                            let name = self.get_global_name(*output_global_handle, global_var);
+                            writeln!(self.out, "{name} = {datatype_prefix}encode( {name}.r );")?;
+                            write!(self.out, "{}", level)?;
+                        }
+
                         // let ep = &self.module.entry_points[ep_index as usize];
                         // if let Some(ref result) = ep.function.result {}
                         writeln!(self.out, "return;")?;
