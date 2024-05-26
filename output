@@ -66,6 +66,21 @@ const vec2 MAGIC_VEC        = vec2(1.0, -256.0);
 const vec4 SCALE_FACTOR     = vec4(1.0, 256.0, 65536.0, 0.0);
 const vec4 SCALE_FACTOR_INV = vec4(1.0, 0.00390625, 0.0000152587890625, 0.0); // 1, 1/256, 1/65536);
 
+uint udecode(uvec4 rgba) {
+    rgba.r = rgba.r << 24;  
+    rgba.g = rgba.g << 16;  
+    rgba.b = rgba.b << 8;
+    return rgba.r + rgba.g + rgba.b + rgba.a;
+}
+
+uvec4 uencode(uint rgba) {
+    uint r = rgba | (255 << 24);
+    uint g = rgba | (255 << 16);
+    uint b = rgba | (255 << 8);
+    uint a = rgba | 255;
+    return uvec4(r, g, b, a);
+}
+
 highp float decode(highp vec4 rgba) {
 
   rgba *= 255.0;

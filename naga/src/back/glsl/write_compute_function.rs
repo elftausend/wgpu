@@ -44,10 +44,13 @@ impl<'a, W: Write> Writer<'a, W> {
                         continue;
                     }
 
+                    // TODO: convert to error
+                    let datatype_prefix = self.extract_data_type_prefix_from_array(&self.module.types[global_var.ty]).unwrap().to_string();
+
                     let global_name = self.get_global_name(global_var_handle, global_var);
                     writeln!(
                         self.out,
-                        "layout(location = {}) out vec4 {global_name};",
+                        "layout(location = {}) out {datatype_prefix}vec4 {global_name};",
                         output_global.len()
                     )?;
                     output_global.push(global_var_handle);
@@ -154,6 +157,22 @@ highp int int_mod(highp int x, highp int y) {{
 const vec2 MAGIC_VEC        = vec2(1.0, -256.0);
 const vec4 SCALE_FACTOR     = vec4(1.0, 256.0, 65536.0, 0.0);
 const vec4 SCALE_FACTOR_INV = vec4(1.0, 0.00390625, 0.0000152587890625, 0.0); // 1, 1/256, 1/65536);
+
+highp uint udecode(uvec4 rgba) {{
+    // rgba.r = rgba.r << 24u;  
+    // rgba.g = rgba.g << 16u;  
+    // rgba.b = rgba.b << 8u;
+    // return rgba.r + rgba.g + rgba.b + rgba.a;
+    return 40u;
+}}
+
+uvec4 uencode(highp uint rgba) {{
+    uint r = rgba | (255u << 24u);
+    uint g = rgba | (255u << 16u);
+    uint b = rgba | (255u << 8u);
+    uint a = rgba | 255u;
+    return uvec4(r, g, b, a);
+}}
 
 highp float decode(highp vec4 rgba) {{
 

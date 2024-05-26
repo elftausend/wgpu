@@ -733,7 +733,7 @@ impl<'a, W: Write> Writer<'a, W> {
 
                     writeln!(
                         self.out,
-                        "uniform {data_type_prefix}sampler2D {global_name};"
+                        "uniform highp {data_type_prefix}sampler2D {global_name};"
                     )?;
                     // self.reflection_names_globals.insert(handle, global_name);
                     input_storage_uniforms.insert(handle, global_name);
