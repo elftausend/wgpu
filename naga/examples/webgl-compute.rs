@@ -178,6 +178,95 @@ fn main() {
     
     ";
 
+    let src = "
+    
+        @group(0) @binding(0)
+        var<storage, read_write> labels_in: array<u32>;
+        
+        @group(0) @binding(1)
+        var<storage, read_write> labels_out: array<u32>;
+        
+        @group(0) @binding(2)
+        var<uniform> width: u32;
+
+        
+        // find 
+        
+    fn find(org_n: u32) -> u32{
+        var n = org_n;
+        var label = labels_in[n];
+        
+        while label - 1 != n {
+            n = label - 1;
+            label = labels_in[n];
+        }
+        return n;
+    }
+
+
+        fn unionOf(org_a: u32, org_b: u32) {
+            var a = org_a;
+            var b = org_b;
+            
+            var done = false;
+            while !done {
+                a = find(a);
+                b = find(b);
+                if a < b {
+                    let old = labels_in[b];
+                    if (a + 1) < old {
+                        labels_out[b] = a + 1;
+                    }
+                    done = old == (b + 1) ;
+                    b = old - 1;
+                } else if a > b {
+                    let old = labels_in[a];
+                    if (b + 1) < old {
+                        labels_out[a] = b + 1;
+                    }
+                    done = old == (a + 1);
+                    a = old - 1;
+                } else {
+                    done = true; 
+                }
+                done = true;
+            } 
+        }
+
+    
+
+        @compute
+        @workgroup_size(32)
+        fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+            var x = global_id.x;
+            var y = global_id.y;
+
+            var outIdx = global_id.y * width + global_id.x; 
+            if outIdx >= arrayLength(&labels_out) {
+                return;
+            }
+            var currentLabel = labels_in[outIdx];
+            if currentLabel == 0 {
+                return; 
+            }
+            if y > 0u {
+                if x > 0u && labels_in[outIdx - width - 1] > 0 {
+                    unionOf(outIdx, outIdx - width - 1);
+                }
+                if labels_in[outIdx - width] > 0 {
+                    unionOf(outIdx, outIdx - width);
+                }
+                if labels_in[outIdx - width + 1] > 0 {
+                    unionOf(outIdx, outIdx + width + 1);
+                }
+            }
+            if x > 0u && labels_in[outIdx - 1] > 0 {
+                unionOf(outIdx, outIdx - 1) ;
+            }
+        }    
+
+    ";
+
     let (module, info) = parse_and_validate_wgsl(&src).unwrap();
 
     // 310 is required for compute shaders

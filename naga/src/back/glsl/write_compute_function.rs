@@ -16,9 +16,13 @@ impl<'a, W: Write> Writer<'a, W> {
         pointer: Handle<Expression>,
     ) -> Option<(Handle<GlobalVariable>, &GlobalVariable)> {
         let out = &expressions[pointer];
-        let Expression::Access { base, index: _ } = out else {
-            return None;
+
+        let base = match out {
+            Expression::Access { base, index: _ } => base,
+            Expression::AccessIndex { base, index: _ } => base,
+            _ => return None,
         };
+
         let Expression::GlobalVariable(global_var_handle) = &expressions[*base] else {
             return None;
         };

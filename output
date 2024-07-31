@@ -3,11 +3,14 @@
 precision highp float;
 precision highp int;
 
-layout(location = 0) out uvec4 _group_0_binding_0_cs;
+layout(location = 0) out uvec4 _group_0_binding_1_cs;
 
 uniform uint _group_0_binding_0_cs_texture_width;
 uniform uint _group_0_binding_0_cs_texture_height;
-uniform uint _group_0_binding_1_cs;
+uniform highp usampler2D _group_0_binding_0_cs;
+uniform uint _group_0_binding_1_cs_texture_width;
+uniform uint _group_0_binding_1_cs_texture_height;
+uniform uint _group_0_binding_2_cs;
 
 uniform uint thread_viewport_width;
 uniform uint thread_viewport_height;
@@ -113,30 +116,86 @@ highp vec4 encode(highp float f) {
 
 uint find(uint org_n) {
     uint n = 0u;
-    uint label_1 = 0u;
+    uint label = 0u;
     n = org_n;
     uint _e3 = n;
     uint _e5 = udecode( texelFetch( _group_0_binding_0_cs, select_from_idx_int( _group_0_binding_0_cs_texture_width, _e3 ), 0));
-    label_1 = _e5;
+    label = _e5;
     while(true) {
-        uint _e7 = label_1;
+        uint _e7 = label;
         uint _e10 = n;
         if (((_e7 - 1u) != _e10)) {
         } else {
             break;
         }
         {
-            uint _e12 = label_1;
+            uint _e12 = label;
             n = (_e12 - 1u);
             uint _e16 = n;
             uint _e18 = udecode( texelFetch( _group_0_binding_0_cs, select_from_idx_int( _group_0_binding_0_cs_texture_width, _e16 ), 0));
-            label_1 = _e18;
+            label = _e18;
         }
     }
-    uint _e20 = n;
-    _group_0_binding_0_cs.r = 1u;
-    uint _e23 = n;
-    return _e23;
+    uint _e19 = n;
+    return _e19;
+}
+
+void unionOf(uint org_a, uint org_b) {
+    uint a = 0u;
+    uint b = 0u;
+    bool done = false;
+    a = org_a;
+    b = org_b;
+    while(true) {
+        bool _e6 = done;
+        if (!(_e6)) {
+        } else {
+            break;
+        }
+        {
+            uint _e8 = a;
+            uint _e9 = find(_e8);
+            a = _e9;
+            uint _e10 = b;
+            uint _e11 = find(_e10);
+            b = _e11;
+            uint _e12 = a;
+            uint _e13 = b;
+            if ((_e12 < _e13)) {
+                uint _e16 = b;
+                uint old = udecode( texelFetch( _group_0_binding_0_cs, select_from_idx_int( _group_0_binding_0_cs_texture_width, _e16 ), 0));
+                uint _e19 = a;
+                if (((_e19 + 1u) < old)) {
+                    uint _e24 = b;
+                    uint _e26 = a;
+                    _group_0_binding_1_cs.r = (_e26 + 1u);
+                }
+                uint _e29 = b;
+                done = (old == (_e29 + 1u));
+                b = (old - 1u);
+            } else {
+                uint _e35 = a;
+                uint _e36 = b;
+                if ((_e35 > _e36)) {
+                    uint _e39 = a;
+                    uint old_1 = udecode( texelFetch( _group_0_binding_0_cs, select_from_idx_int( _group_0_binding_0_cs_texture_width, _e39 ), 0));
+                    uint _e42 = b;
+                    if (((_e42 + 1u) < old_1)) {
+                        uint _e47 = a;
+                        uint _e49 = b;
+                        _group_0_binding_1_cs.r = (_e49 + 1u);
+                    }
+                    uint _e52 = a;
+                    done = (old_1 == (_e52 + 1u));
+                    a = (old_1 - 1u);
+                } else {
+                    done = true;
+                }
+            }
+            done = true;
+        }
+    }
+    return;
 }
 
 void main() {
@@ -154,29 +213,66 @@ void main() {
     uint x = 0u;
     uint y = 0u;
     uint outIdx = 0u;
-    uint label = 0u;
+    uint currentLabel = 0u;
     x = global_id.x;
     y = global_id.y;
-    uint _e7 = _group_0_binding_1_cs;
+    uint _e7 = _group_0_binding_2_cs;
     outIdx = ((global_id.y * _e7) + global_id.x);
     uint _e12 = outIdx;
-    if ((_e12 >= uint(_group_0_binding_0_cs_texture_width * _group_0_binding_0_cs_texture_height))) {
-        _group_0_binding_0_cs = uencode( _group_0_binding_0_cs.r );
+    if ((_e12 >= uint(_group_0_binding_1_cs_texture_width * _group_0_binding_1_cs_texture_height))) {
+        _group_0_binding_1_cs = uencode( _group_0_binding_1_cs.r );
         return;
     }
     uint _e17 = outIdx;
     uint _e19 = udecode( texelFetch( _group_0_binding_0_cs, select_from_idx_int( _group_0_binding_0_cs_texture_width, _e17 ), 0));
-    label = _e19;
-    uint _e21 = label;
-    if ((_e21 > 0u)) {
-        uint _e25 = outIdx;
-        uint _e27 = outIdx;
-        uint _e28 = find(_e27);
-        _group_0_binding_0_cs.r = (_e28 + 1u);
-        _group_0_binding_0_cs = uencode( _group_0_binding_0_cs.r );
+    currentLabel = _e19;
+    uint _e21 = currentLabel;
+    if ((_e21 == 0u)) {
+        _group_0_binding_1_cs = uencode( _group_0_binding_1_cs.r );
+        return;
+    }
+    uint _e24 = y;
+    if ((_e24 > 0u)) {
+        uint _e27 = x;
+        uint _e31 = outIdx;
+        uint _e33 = _group_0_binding_2_cs;
+        uint _e38 = udecode( texelFetch( _group_0_binding_0_cs, select_from_idx_int( _group_0_binding_0_cs_texture_width, ((_e31 - _e33) - 1u) ), 0));
+        if (((_e27 > 0u) && (_e38 > 0u))) {
+            uint _e42 = outIdx;
+            uint _e43 = outIdx;
+            uint _e45 = _group_0_binding_2_cs;
+            unionOf(_e42, ((_e43 - _e45) - 1u));
+        }
+        uint _e50 = outIdx;
+        uint _e52 = _group_0_binding_2_cs;
+        uint _e55 = udecode( texelFetch( _group_0_binding_0_cs, select_from_idx_int( _group_0_binding_0_cs_texture_width, (_e50 - _e52) ), 0));
+        if ((_e55 > 0u)) {
+            uint _e58 = outIdx;
+            uint _e59 = outIdx;
+            uint _e61 = _group_0_binding_2_cs;
+            unionOf(_e58, (_e59 - _e61));
+        }
+        uint _e64 = outIdx;
+        uint _e66 = _group_0_binding_2_cs;
+        uint _e71 = udecode( texelFetch( _group_0_binding_0_cs, select_from_idx_int( _group_0_binding_0_cs_texture_width, ((_e64 - _e66) + 1u) ), 0));
+        if ((_e71 > 0u)) {
+            uint _e74 = outIdx;
+            uint _e75 = outIdx;
+            uint _e77 = _group_0_binding_2_cs;
+            unionOf(_e74, ((_e75 + _e77) + 1u));
+        }
+    }
+    uint _e81 = x;
+    uint _e85 = outIdx;
+    uint _e89 = udecode( texelFetch( _group_0_binding_0_cs, select_from_idx_int( _group_0_binding_0_cs_texture_width, (_e85 - 1u) ), 0));
+    if (((_e81 > 0u) && (_e89 > 0u))) {
+        uint _e93 = outIdx;
+        uint _e94 = outIdx;
+        unionOf(_e93, (_e94 - 1u));
+        _group_0_binding_1_cs = uencode( _group_0_binding_1_cs.r );
         return;
     } else {
-        _group_0_binding_0_cs = uencode( _group_0_binding_0_cs.r );
+        _group_0_binding_1_cs = uencode( _group_0_binding_1_cs.r );
         return;
     }
 }
