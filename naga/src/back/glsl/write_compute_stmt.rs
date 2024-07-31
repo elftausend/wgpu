@@ -318,7 +318,6 @@ impl<'a, W: Write> Writer<'a, W> {
                 ref arguments,
                 result,
             } => {
-                todo!();
                 write!(self.out, "{level}")?;
                 if let Some(expr) = result {
                     let name = format!("{}{}", back::BAKE_PREFIX, expr.index());

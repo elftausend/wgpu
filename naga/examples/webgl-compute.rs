@@ -138,6 +138,46 @@ fn main() {
             }
         ";
 
+    let src = "
+   
+        @group(0) @binding(0)
+        var<storage, read_write> labels: array<u32>;
+        
+        @group(0) @binding(1)
+        var<uniform> width: u32;
+    
+        
+        fn find(org_n: u32) -> u32{
+            var n = org_n;
+            var label = labels[n];
+            
+            while label - 1 != n {
+                n = label - 1;
+                label = labels[n];
+            }
+            return n;
+        }
+       
+        @compute
+        @workgroup_size(32)
+        fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+            var x = global_id.x;
+            var y = global_id.y;
+
+            var outIdx = global_id.y * width + global_id.x; 
+            if outIdx >= arrayLength(&labels) {
+                return;
+            }
+
+            var label = labels[outIdx];
+            if label > 0 {
+                labels[outIdx] = find(outIdx) + 1;
+            }
+            
+        } 
+    
+    ";
+
     let (module, info) = parse_and_validate_wgsl(&src).unwrap();
 
     // 310 is required for compute shaders
