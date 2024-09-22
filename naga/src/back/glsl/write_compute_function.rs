@@ -107,15 +107,15 @@ uniform uint gws_z;
         writeln!(
             self.out,
             "
-    uint absolute_col = uint(thread_uv.x * float(thread_viewport_width));
-    uint absolute_row = uint(thread_uv.y * float(thread_viewport_height));
-    uint idx = absolute_row * thread_viewport_width + absolute_col;
+    uint thread_absolute_col = uint(thread_uv.x * float(thread_viewport_width));
+    uint thread_absolute_row = uint(thread_uv.y * float(thread_viewport_height));
+    uint INTERNAL_idx = thread_absolute_row * thread_viewport_width + thread_absolute_col;
 
-    uint x_idx = idx % gws_x;
-    uint y_idx = (idx / gws_x) % gws_y;
-    uint z_idx = (idx / (gws_x * gws_y)) % gws_z;
+    uint INTERNAL_x_idx = INTERNAL_idx % gws_x;
+    uint INTERNAL_y_idx = (INTERNAL_idx / gws_x) % gws_y;
+    uint INTERNAL_z_idx = (INTERNAL_idx / (gws_x * gws_y)) % gws_z;
 
-    uvec3 {name} = uvec3(x_idx, y_idx, z_idx);
+    uvec3 {name} = uvec3(INTERNAL_x_idx, INTERNAL_y_idx, INTERNAL_z_idx);
         "
         )
     }
